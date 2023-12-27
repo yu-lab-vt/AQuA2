@@ -59,11 +59,11 @@ function addDetectTab(f,pDeOut)
     uieditfield(bAct,'Value','8','Tag','minSize'); uilabel(bAct,'Text','Minimum size (pixels)');
     p = uicheckbox(bAct,'Text','Advanced filters','Value',0,'Tag','advFilter','ValueChangedFcn',{@ui.com.advFilters,f});
     p.Layout.Column  = [1,2];
-    gAct3 = uigridlayout(bAct,'Padding',[20,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20},'RowSpacing',3,'ColumnSpacing',5,'Tag','gAct3');
+    gAct3 = uigridlayout(bAct,'Padding',[20,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{20,20},'RowSpacing',3,'ColumnSpacing',5,'Tag','gAct3');
     gAct3.Layout.Column  = [1,2];
     uieditfield(gAct3,'Value','inf','Tag','maxSize'); uilabel(gAct3,'Text','Maximum size (pixels)');
     uieditfield(gAct3,'Value','0','Tag','circularityThr');  uilabel(gAct3,'Text','Circurlarity threshold for active region');
-    uieditfield(gAct3,'Value','0','Tag','spaMergeDist'); uilabel(gAct3,'Text','Allowed distance in the same signal');
+%     uieditfield(gAct3,'Value','0','Tag','spaMergeDist'); uilabel(gAct3,'Text','Allowed distance in the same signal');
     gAct3.Visible = 'off';
 
     % event detection: temporal segmentation

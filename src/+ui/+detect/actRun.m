@@ -32,7 +32,7 @@ opts.minSize = str2double(fh.minSize.Value);
 opts.maxSize = str2double(fh.maxSize.Value);
 opts.minDur = str2double(fh.minDur.Value);
 opts.circularityThr = str2double(fh.circularityThr.Value);
-opts.spaMergeDist = str2double(fh.spaMergeDist.Value);
+opts.spaMergeDist = 0; %str2double(fh.spaMergeDist.Value);
 
 % channel 1
 ff = waitbar(0,'Active region detection ...');
@@ -59,7 +59,7 @@ if ~opts.singleChannel
     fh.movRType.Value = 'Raw + overlay';
 end
 ui.mov.movViewSel([],[],f);
-ui.detect.postRun([],[],f,arLst1,arLst2,[],[],'Step 1: active voxels');
+ui.detect.postRun([],[],f,arLst1,arLst2,[],[],'Step 2: active voxels');
 
 fh.GaussFilter.Enable = 'on';
 

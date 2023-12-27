@@ -76,9 +76,9 @@ else
 end
 waitbar(1,ff);
 
-ui.detect.postRun([],[],f,sdLst1,sdLst2,[],[],'Step 2aa: seeds');
-ui.detect.postRun([],[],f,subEvtLst1,subEvtLst2,[],[],'Step 2a: watershed results');
-ui.detect.postRun([],[],f,seLst1,seLst2,[],[],'Step 2b: super events');
+ui.detect.postRun([],[],f,sdLst1,sdLst2,[],[],'Step 3aa: seeds');
+ui.detect.postRun([],[],f,subEvtLst1,subEvtLst2,[],[],'Step 3a: watershed results');
+ui.detect.postRun([],[],f,seLst1,seLst2,[],[],'Step 3b: super events');
 
 fh.nEvtName.Text = 'nSe';
 if(~opts.singleChannel)
