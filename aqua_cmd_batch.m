@@ -120,11 +120,17 @@ for xxx = 1:numel(files)
     else
         seLst1 = arLst1;
         seLst2 = arLst2;
+        subEvtLst1 = arLst1; 
+        subEvtLst2 = arLst2; 
+        seLabel1 = 1:numel(seLst1);
+        seLabel2 = 1:numel(seLst2);
+        majorInfo1 = se.getMajority_Ac(seLst1,seLst1,dF1,opts);
+        majorInfo2 = se.getMajority_Ac(seLst2,seLst2,dF2,opts);
     end
 
     %% spatial segmentation
     disp('Spatial segmentation...');
-    if(opts.needTemp && opts.needSpa)
+    if(opts.needSpa)
         [riseLst1,datR1,evt1,~] = evt.se2evtTop(dF1,seLst1,subEvtLst1,seLabel1,majorInfo1,opts,[]);
         if(~opts.singleChannel)
             [riseLst2,datR2,evt2,~] = evt.se2evtTop(dF2,seLst2,subEvtLst2,seLabel2,majorInfo2,opts,[]);

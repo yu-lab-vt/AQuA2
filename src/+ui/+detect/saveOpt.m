@@ -22,7 +22,7 @@ function saveOpt(~,~,f)
     opts.maxSize = str2double(fh.maxSize.Value);
     opts.minDur = str2double(fh.minDur.Value);
     opts.circularityThr = str2double(fh.circularityThr.Value);
-    opts.spaMergeDist = str2double(fh.spaMergeDist.Value);
+%     opts.spaMergeDist = str2double(fh.spaMergeDist.Value);
     
     opts.needTemp = fh.needTemp.Value;
     opts.sigThr = str2double(fh.sigThr.Value);

@@ -64,15 +64,29 @@ else
     else
         arLst2 = [];
     end
+    
+
     sdLst1 = arLst1;
     sdLst2 = arLst2; 
     seLst1 = arLst1; 
     seLst2 = arLst2; 
     subEvtLst1 = arLst1; 
     subEvtLst2 = arLst2; 
+    seLabel1 = 1:numel(seLst1);
+    setappdata(f,'subEvtLst1',seLst1);
     setappdata(f,'seLst1',seLst1);
+    setappdata(f,'seLabel1',seLabel1);
+    dF1 = getappdata(f,'dF1');
+    setappdata(f,'majorInfo1',se.getMajority_Ac(seLst1,seLst1,dF1,opts));
+    clear dF1;
+
+    seLabel2 = 1:numel(seLst2);
+    setappdata(f,'subEvtLst2',seLst2);
     setappdata(f,'seLst2',seLst2);
-%     ff = [];
+    setappdata(f,'seLabel2',seLabel2);
+    dF2 = getappdata(f,'dF2');
+    setappdata(f,'majorInfo2',se.getMajority_Ac(seLst2,seLst2,dF2,opts));
+    clear dF2;
 end
 waitbar(1,ff);
 

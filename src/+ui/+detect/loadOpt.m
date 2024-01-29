@@ -16,7 +16,7 @@ function loadOpt(~,~,f)
         opts.maxSize = optsLoad.maxSize;
         opts.minDur = optsLoad.minDur;
         opts.circularityThr = optsLoad.circularityThr;
-        opts.spaMergeDist = optsLoad.spaMergeDist;
+%         opts.spaMergeDist = optsLoad.spaMergeDist;
 
         opts.needTemp = optsLoad.needTemp;
         opts.sigThr = optsLoad.sigThr;

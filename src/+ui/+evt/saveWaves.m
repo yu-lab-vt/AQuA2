@@ -7,18 +7,18 @@ function saveWaves(~,~,f)
     end
     path0 = [selpath,filesep,opts.fileName1];
     
-    if ~exist(path0,'file') && ~isempty(path0)
+%     if ~exist(path0,'file') && ~isempty(path0)
         mkdir(path0);    
-    end
+%     end
     
     path1 = [path0,filesep,'waves_whole_video'];
     path2 = [path0,filesep,'waves_event_duration'];
-    if ~exist(path1,'file') && ~isempty(path1)
+%     if ~exist(path1,'file') && ~isempty(path1)
         mkdir(path1);    
-    end
-    if ~exist(path2,'file') && ~isempty(path2)
+%     end
+%     if ~exist(path2,'file') && ~isempty(path2)
         mkdir(path2);    
-    end
+%     end
     
     fh = guidata(f);
     tb = fh.evtTable;

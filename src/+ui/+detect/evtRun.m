@@ -5,7 +5,7 @@ fh = guidata(f);
 opts = getappdata(f,'opts');
 
 ff = waitbar(0,'Detecting Channel 1...');
-if(fh.needTemp.Value && fh.needSpa.Value)
+if(fh.needSpa.Value)
     fprintf('Detecting ...\n')
     try
         opts.sourceSzRatio = str2double(fh.sourceSzRatio.Value);
