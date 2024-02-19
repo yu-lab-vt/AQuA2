@@ -17,6 +17,11 @@ labelMaps = cell(2,1); alphaMaps = cell(2,1); colMaps = cell(2,1);
 labelMaps{1} = labelMap;
 alphaMaps{1} = alphaMap;
 colMaps{1} = colMap;
+
+labelMaps{2} = labelMap2;
+alphaMaps{2} = alphaMap;
+colMaps{2} = colMap2;
+
 if ~strcmp(btSt.overlayDatSel,'None')
     % show movie with overlay
     labelMap = zeros(H0,W0,L0);

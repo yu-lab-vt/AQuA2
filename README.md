@@ -87,15 +87,15 @@ For 3D imaging data, we recommend to use MATLAB 2022b.
 ## MATLAB Without GUI
 ### Use aqua_batch.m file
 1. Double click `aqua_batch.m` file.
-2. Set the folder path 'pIn', and for each target dataset, set the parameters in `AQuA/cfg/parameters_for_batch.csv`. Each dataset is corresponding to one parameter setting.
+2. Set the folder path 'pIn', and for each target dataset, set the parameters in `AQuA2/cfg/parameters_for_batch.csv`. Each dataset is corresponding to one parameter setting.
 3. Run the file.
 4. The output files will be saved in subfolders of 'pOut'.
 
 # Getting started
 If you are using AQuA2 for the first time, please read
-**[the step by step user guide](https://docs.google.com/presentation/d/1ahYrHztBbQ85-mn92iU1OSRb4yzE5dYm/edit?usp=sharing&ouid=105922323154287878006&rtpof=true&sd=true)**.
+**[the step by step user guide](https://virginiatech-my.sharepoint.com/:p:/g/personal/mixl18_vt_edu/EdRMiv8EVYJJrzZMBsr2HFgBCjY8kaAdRGEM8h3QsLzS3w?e=w8T2IB)**.
 
-Or you can check the **[details on output files, extracted features, and parameter settings](https://drive.google.com/open?id=1assaXYBP6a0OOHrYGYBWjYO2pgwKR3Iu)**.
+Or you can check the **[details on output files, extracted features, and parameter settings](https://virginiatech-my.sharepoint.com/:w:/r/personal/mixl18_vt_edu/Documents/AQuA2_files/AQUA2%20DOCUMENTATION.docx?d=wa4059184ace94998a8498e24ca64e642&csf=1&web=1&e=XFEoeD)**.
 
 # Example datasets
 You can try these real data sets in AQuA. These data sets are used in the supplemental of the paper.

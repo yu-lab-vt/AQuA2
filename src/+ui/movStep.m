@@ -59,7 +59,9 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
         if L==1
             datxCol = cell(2,1);
             datxCol{1} = cat(3,dat1,dat1,dat1) + overCol1;
-            datxCol{2} = cat(3,dat2,dat2,dat2) + overCol2;
+            if(~opts.singleChannel)
+                datxCol{2} = cat(3,dat2,dat2,dat2) + overCol2;
+            end
             return;
         else
             datxCol = dat;
@@ -202,6 +204,7 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
                         datM = fh.maxPro2;
                     end
                     datM = (datM-scl.min)/max(scl.max-scl.min,0.01);
+                    datM = min(max(datM, 0), 1);
                     if L==1
                         datM = cat(3,datM,datM,datM)*briScl(ii);
                         ims{ii}.CData = flipud(datM);
@@ -209,7 +212,7 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
                     else
                         ims{ii}.Data = se.myResize(datM,1/dsSclXY);
                         ims{ii}.OverlayData = [];
-                        ims{ii}.OverlayAlphamap = overLayAlpha;
+                        ims{ii}.OverlayAlphamap = overLayAlpha{channelSelect(ii)};
                     end
                     
                 case 'Average Projection'
@@ -219,6 +222,7 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
                         datM = fh.averPro2;
                     end
                     datM = (datM-scl.min)/max(scl.max-scl.min,0.01);
+                    datM = min(max(datM, 0), 1);
                     if L==1
                         datM = cat(3,datM,datM,datM)*briScl(ii);
                         ims{ii}.CData = flipud(datM);
@@ -226,7 +230,7 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
                     else
                         ims{ii}.Data = se.myResize(datM,1/dsSclXY);
                         ims{ii}.OverlayData = [];
-                        ims{ii}.OverlayAlphamap = overLayAlpha;
+                        ims{ii}.OverlayAlphamap = overLayAlpha{channelSelect(ii)};
                     end 
             end
         end
@@ -241,6 +245,3 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
     % frame number
     ui.mov.updtMovInfo(f,n,opts.sz(4));
 end
-
-
-

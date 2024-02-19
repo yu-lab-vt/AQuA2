@@ -8,6 +8,10 @@ opts = getappdata(f,'opts');
 sclOv = scl.briOv;
 overCol1 = zeros(H,W,3,'single');
 overCol2 = [];
+if ~opts.singleChannel
+    overCol2 = zeros(H,W,3,'single');
+end
+
 if ~strcmp(btSt.overlayDatSel,'None')
     % show movie with overlay
     rPlane = zeros(H,W);

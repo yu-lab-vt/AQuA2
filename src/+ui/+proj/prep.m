@@ -235,6 +235,7 @@ if opts.singleChannel
 else
     btSt.ChannelL = 1;
     btSt.ChannelR = 2;
+    btSt.rightView = 'Raw + overlay';
     fh.movRType.Value = 'Raw + overlay';
     fh.sbs.Value = 1;
     fh.sbs.BackgroundColor = [0.8 0.8 0.8];
