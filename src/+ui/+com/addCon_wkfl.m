@@ -90,7 +90,7 @@ function addCon_wkfl(f,pWkfl)
     % exporting ----
     bExp = uigridlayout(pExport,'Padding',[0,5,0,0],'ColumnWidth',{5,'1x','1x',5},'RowHeight',{20,20,20,20},'RowSpacing',5);
     p = uilabel(bExp,'Text','Export','BackgroundColor',[0 0.3 0.6],'FontColor','white'); p.Layout.Column = [1,4];
-    p = uicheckbox(bExp,'Text','AQuA project','Value',1,'Tag','expEvt');p.Layout.Column = 2;
+    p = uicheckbox(bExp,'Text','AQuA2 project','Value',1,'Tag','expEvt');p.Layout.Column = 2;
     uicheckbox(bExp,'Text','Feature Table','Value',1,'Tag','expFt');
     p = uicheckbox(bExp,'Text','Movie with overlay','Value',1,'Tag','expMov');p.Layout.Column = 2; p.Layout.Row = 3;
     % uicheckbox(bExp,'Text','Events (Only position)','Value',0,'Tag','expEvt2');

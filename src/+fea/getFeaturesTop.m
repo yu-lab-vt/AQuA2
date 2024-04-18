@@ -1,5 +1,5 @@
 function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
-% ----------- Modified by Xuelong Mi, 04/04/2023 -----------
+% ----------- Modified by Xuelong Mi, 04/18/2024 -----------
     % getFeaturesTop extract curve related features, basic features
     % dat: single (0 to 1)
     % evtMap: single (integer)
@@ -54,7 +54,7 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
 %         end
         
         % dff
-        charx1 = mean(dat(ihw,:),1);
+        charx1 = mean(dat(ihw,:),1) * (opts.maxValueDat - opts.minValueDat) + opts.minValueDat;
         sigma1 = pre.avgDatNoiseEst(charx1,ihw,opts);
         
         % correct baseline method
@@ -68,7 +68,7 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
         dffMax1= max(dff1Sel);
         
         % dff without other events
-        charx2 = mean(datx(ihw,:),1,'omitnan');
+        charx2 = mean(datx(ihw,:),1,'omitnan') * (opts.maxValueDat - opts.minValueDat) + opts.minValueDat;
         charx2(rgT) = charx1(rgT);
         dff2 = (charx2-charxBg1)./(charxBg1+1e-4);        
         
@@ -90,8 +90,8 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
 
         dffMat(ii,:,1) = single(dff1);
         dffMat(ii,:,2) = single(dff2);
-        dMat(ii,:,1) = single(charx1)*(opts.maxValueDat - opts.minValueDat) + opts.minValueDat; 
-        dMat(ii,:,2) = single(charx2)*(opts.maxValueDat - opts.minValueDat) + opts.minValueDat; 
+        dMat(ii,:,1) = single(charx1); 
+        dMat(ii,:,2) = single(charx2); 
         
         % update
         ftsLst.loc.t0(ii) = min(it);
