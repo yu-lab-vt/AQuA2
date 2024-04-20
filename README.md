@@ -7,8 +7,8 @@ If you have any feedback or issue, you are welcome to either post issue in Issue
 - [More about AQuA2](#more-about-aqua)
   - [Potential Input Data](#potential-input-data)
   - [Detection Pipeline](#detection-pipeline)
-  - [Extract Features from Events](#extract-features-from-events)
-  - [CFU Module](#CFU-module)
+  - [Functional unit analysis](#functional-unit-analysis)
+  - [Output Features](#output-features)
   - [Graphical User Interface for Event Detection](#graphical-user-interface-for-event-detection)
   - [Graphical User Interface for CFU Module](#Graphical-User-Interface-for-CFU-Module)
 - [Download and installation](#download-and-installation)
@@ -38,16 +38,24 @@ If you have any feedback or issue, you are welcome to either post issue in Issue
 * Temporal segmentation - Super events
 * Spatial segmentation - Events
 
-## Extract Features from Events
-* Size and location
-* Duration, delta F/F, rising/falling time, decay time constant
-* Propagation direction, speed
-* And more
-
-## CFU Module
+## Functional unit analysis
+* Consensus Functional Unit (CFU) definition: 
+  - If one spatial region generates repeated signal events, it is more likely to be a functional unit, and we refer to such a region as a CFU. This concept offers greater flexibility compared to ROIs, allowing each occurrence of signals to have different sizes, shapes, and propagation patterns while maintaining consistent spatial foundations. The derived CFU could be single cell, cell group, tissue, or organ.
 * CFU identification
-* Dependency measurement between CFUs
-* And more
+* Interaction analysis between CFUs
+* CFU grouping
+
+## Output Features
+- Event-level features
+  - Location of events
+  - Basic features of individual events, including voxel set, duration, area size, average curve of event's spatial footprint, average dF curve of spatial footprint, rising time, peak p-value, area under the curve (AUC), and others.
+  - Propagation-related features, including propagation speed, propagation map, and propagation trend in various directions.
+  - Network features, which involve the distances between events and user-defined regions (e.g., cell regions or landmarks), as well as assessing the co-occurrence of events in spatial or temporal dimensions.
+- CFU-level features
+  - Individual CFU information, including the spatial map, event sequence, average curve, and average dF curve.
+  - The dependency between every pair of CFUs, as well as the relative delay between two CFUs.
+  - The information of CFU groups, including CFU indexes and the relative delay of each CFU.
+
 
 ## Graphical User Interface for Event Detection
 * Similar GUI as AQuA
@@ -91,6 +99,9 @@ For 3D imaging data, we recommend to use MATLAB 2022b.
 3. Run the file.
 4. The output files will be saved in subfolders of 'pOut'.
 
+## Fiji plugin
+- Fiji plugin version of AQuA can be found **[here](https://github.com/yu-lab-vt/AQuA2-Fiji)**.
+
 # Getting started
 If you are using AQuA2 for the first time, please read
 **[the step by step user guide](https://virginiatech-my.sharepoint.com/:p:/g/personal/mixl18_vt_edu/EdRMiv8EVYJJrzZMBsr2HFgBCjY8kaAdRGEM8h3QsLzS3w?e=w8T2IB)**.
@@ -98,7 +109,7 @@ If you are using AQuA2 for the first time, please read
 Or you can check the **[details on output files, extracted features, and parameter settings](https://virginiatech-my.sharepoint.com/:w:/g/personal/mixl18_vt_edu/EYSRBaTprJhJqEmOJMpk5kIB98l41cVx6TqEXZFzWxpfSQ?e=noiTfb)**.
 
 # Example datasets
-You can try these real data sets in AQuA. These data sets are used in the supplemental of the paper.
+You can try these real data sets in AQuA2.
 
 **[Ex-vivo GCaMP dataset](https://drive.google.com/open?id=13tNSFQ1BFV__42TY0lZbHd1VYTRfNyfD)**
 
@@ -106,15 +117,9 @@ You can try these real data sets in AQuA. These data sets are used in the supple
 
 **[GluSnFr dataset](https://drive.google.com/open?id=1XFJBE18sQTa6svXXRV1TidgNPSv-ldtY)**
 
-We also provide some synthetic data sets. These are used in the simulation part of the paper.
-
-**[Synthetic data sets](https://drive.google.com/open?id=1ljh-X7vkT7ryjk0mR7PXli_-nYThqK7h)**
-
 
 # Reference
-*AQuA2: Fluorescent Brain Activity Quantification and Analysis with Improved Accuracy, Efficiency, and Versatility*
-
-Yizhi Wang$, Nicole V. DelRosso$, Trisha V. Vaidyanathan, Michelle K. Cahill, Michael E. Reitman, Silvia Pittolo, Xuelong Mi, Guoqiang Yu#, Kira E. Poskanzer#, *Accurate quantification of astrocyte and neurotransmitter fluorescence dynamics for single-cell and population-level physiology*, Nature Neuroscience, 2019, https://www.nature.com/articles/s41593-019-0492-2 ($ co-first authors, # co-corresponding authors)
+*Fast, Accurate and Versatile Platform for Quantification and Analysis of Molecular Spatiotemporal Activity*
 
 # Updates
 
