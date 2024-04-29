@@ -60,7 +60,8 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
         % correct baseline method
         charxBg1 = getBaseline(charx1,Tww,opts.cut);
         charxBg1 = charxBg1 - pre.obtainBias(Tww,opts.cut)*sigma1;
-        dff1 = (charx1-charxBg1)./(charxBg1+1e-4);
+        df1 = charx1 - charxBg1;
+        dff1 = (df1)./(charxBg1+1e-4);
         % may be modified later
         sigma1dff = max(1e-4,sqrt(mean((dff1(2:end)-dff1(1:end-1)).^2)/2));
 
@@ -102,6 +103,7 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
         ftsLst.loc.xSpa{ii} = ihw;
         ftsLst.curve.rgt1(ii,:) = [min(rgT1),max(rgT1)];        % extended time window
         ftsLst.curve.dffMax(ii) = dffMax1;
+        ftsLst.curve.dfMax(ii) = max(df1(rgT));
         ftsLst.curve.dffMax2(ii) = dffMax2;
         ftsLst.curve.dffMaxFrame(ii) = (tMax+min(rgT)-1);
         ftsLst.curve.dffMaxZ(ii) = dffMaxZ;
@@ -126,6 +128,7 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
          
         % AUC
         ftsLst.curve.datAUC(ii) = sum(charx1(min(it):max(it)));
+        ftsLst.curve.dfAUC(ii) = sum(df1(min(it):max(it)));
         ftsLst.curve.dffAUC(ii) = sum(dff1(min(it):max(it)));
         
         % basic features

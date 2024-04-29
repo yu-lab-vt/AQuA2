@@ -7,6 +7,7 @@ Basic - Perimeter (only for 2D video),x=fts.basic.peri
 Basic - Surface Size (only for 3D video),x=fts.basic.surf
 Basic - Circularity,x=fts.basic.circMetric
 Curve - P Value on max Dff (-log10),x=-log10(fts.curve.dffMaxPval)
+Curve - Max Df,x=fts.curve.dfMax
 Curve - Max Dff,x=fts.curve.dffMax
 Curve - Duration of visualized event overlay,x=fts.curve.duration
 Curve - Duration 50% to 50% based on averge dF/F,x=fts.curve.width55
@@ -14,6 +15,7 @@ Curve - Duration 10% to 10% based on averge dF/F,x=fts.curve.width11
 Curve - Rising duration 10% to 90% based on averge dF/F,x=fts.curve.rise19
 Curve - Decaying duration 90% to 10% based on averge dF/F,x=fts.curve.fall91
 Curve - dat AUC,x=fts.curve.datAUC
+Curve - df AUC,x=fts.curve.dfAUC
 Curve - dff AUC,x=fts.curve.dffAUC
 Curve - Decay tau,x=fts.curve.decayTau
 Propagation - onset - overall,"x0=fts.propagation.propGrowOverall; x=sum(x0,2)"
