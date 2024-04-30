@@ -1,4 +1,4 @@
-function [actReg3,lblMapS] = regionMapWithData(regionMap,dat,sclOv,reCon,mskx,minSz,minAmp,seedx)
+function [ov,lblMapS] = regionMapWithData(regionMap,dat,sclOv,reCon,mskx,minSz,minAmp,seedx)
 % showActRegion3D draw spatial-temporal FIUs
 % use 8 bit for visualization
 
@@ -7,7 +7,7 @@ if ~exist('seedx','var') || isempty(seedx)
 end
 rng(seedx);
 
-[H,W,T] = size(dat);
+nDimension = numel(size(dat));
 dat = uint8(dat*255);
 % sclOv = uint8(sclOv);
 
@@ -27,12 +27,12 @@ if ~exist('minAmp','var') || isempty(minAmp)
     minAmp = 0;
 end
 
-lblMapS = zeros(H,W,T);
+lblMapS = zeros(size(dat));
 if ~iscell(regionMap)
     rPlane = regionMap*0;
     rgPixLst = label2idx(regionMap);
 else
-    rPlane = zeros(H,W,T,'uint8');  
+    rPlane = zeros(size(dat),'uint8');  
     rgPixLst = regionMap;  
 end
 N = length(rgPixLst);
@@ -60,16 +60,25 @@ for nn=1:N
     while (x(1)>0.8*255 && x(2)>0.8*255 && x(3)>0.8*255) || sum(x)<255
         x = randi(255,[1,3]);
     end
-    x = uint8(x/max(x)*255);
+    x = x/max(x)*255;
     rPlane(tmp) = x(1);
     gPlane(tmp) = x(2);
     bPlane(tmp) = x(3);
 end
 
-actReg3 = zeros(H,W,3,T,'uint8');
-actReg3(:,:,1,:) = uint8(double(rPlane)*sclOv.*reCon) + dat;
-actReg3(:,:,2,:) = uint8(double(gPlane)*sclOv.*reCon) + dat;
-actReg3(:,:,3,:) = uint8(double(bPlane)*sclOv.*reCon) + dat;
+sz = size(dat);
+if nDimension == 3 || sz(3) == 1
+    rPlane = squeeze(rPlane);
+    gPlane = squeeze(gPlane);
+    bPlane = squeeze(bPlane);
+    reCon = squeeze(reCon);
+    dat = squeeze(dat);
+    ov = cat(4,uint8(double(rPlane)*sclOv.*reCon) + dat,uint8(double(gPlane)*sclOv.*reCon) + dat,uint8(double(bPlane)*sclOv.*reCon) + dat);
+    ov = permute(ov,[1,2,4,3]);
+else
+    ov = cat(5,uint8(double(rPlane)*sclOv.*reCon) + dat,uint8(double(gPlane)*sclOv.*reCon) + dat,uint8(double(bPlane)*sclOv.*reCon) + dat);
+    ov = permute(ov,[1,2,5,3,4]);
+end
 
 end
 

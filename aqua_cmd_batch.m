@@ -13,8 +13,10 @@ close all;
 clc;
 clearvars
 startup;  % initialize
-pIn = 'V:\GrabATP_H1Rpharmacology_forXuelong\noAntagonist\'; %% tif folder
-pOut = 'V:\GrabATP_H1Rpharmacology_forXuelong\noAntagonist\'; %% tif folder
+pIn = 'F:\Test_data\Check\'; %% tif folder
+pOut = 'F:\Test_data\Check\'; %% tif folder
+batchSet.outputMovie = true;
+batchSet.outputFeatureTable = true;
 
 %% For cell boundary and landmark
 p_cell = '';   % cell boundary path, if you have
@@ -299,4 +301,52 @@ for xxx = 1:numel(files)
     name = [f1(1:end-4)];
     disp('Saving result...');
     save([pOut,name,'_AQuA2.mat'], 'res','-v7.3');   
+
+    %% FeatureTable
+    if batchSet.outputFeatureTable
+        if bd.isKey('landmk')
+            bd1 = bd('landmk');
+            if opts.sz(3)==1
+                lmkLst = cell(numel(bd1),1);
+                for ii=1:numel(bd1)
+                    lmkLst{ii} = bd1{ii}{1};
+                end
+            else
+                lmkLst = [];
+            end
+        else
+            lmkLst = [];
+        end
+        featureTable1 = fea.getFeatureTable00(fts1,evt1,[]);
+        ftb1 = [pOut,name,'_AQuA2_Ch1.csv'];
+        writetable(featureTable1,ftb1,'WriteVariableNames',0,'WriteRowNames',1);
+        if(~opts.singleChannel)
+            featureTable2 = fea.getFeatureTable00(fts2,evt2,[]);
+            ftb2 = [pOut,name,'_AQuA2_Ch2.csv'];
+            writetable(featureTable2,ftb2,'WriteVariableNames',0,'WriteRowNames',1);
+        end
+    end
+
+%% export movie
+    if batchSet.outputMovie
+        if opts.sz(3) == 1
+            ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
+            if ~opts.singleChannel
+                ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
+                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_1.tif'],ov1,0);
+                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_2.tif'],ov2,0);
+            else
+                io.writeTiffSeq([pOut,name,'_AQuA2_Movie.tif'],ov1,0);
+            end
+        else
+            ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
+            for t = 1:opts.sz(4)
+                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_1_Frame ',num2str(tt),'.tif'],ov1(:,:,:,:,t),0);
+            end
+            if ~opts.singleChannel
+                ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
+                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_2_Frame ',num2str(tt),'.tif'],ov2(:,:,:,:,t),0);
+            end
+        end
+    end
 end
