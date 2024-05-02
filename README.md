@@ -2,7 +2,7 @@
 ----------------------------------
 AQuA2 (Activity Quantification and Analysis) is a tool for quantifying signals across neurotransmitters, cell types, and animals of biological fluorescent imaging data.
 
-If you have any feedback or issue, you are welcome to either post issue in Issues section or send email to yug@vt.edu (Guoqiang Yu at Virginia Tech).
+If you have any feedback or issue, you are welcome to either post issue in Issues section or send email to yug@tsinghua.edu.cn (Guoqiang Yu at Tsinghua University).
 
 - [More about AQuA2](#more-about-aqua)
   - [Potential Input Data](#potential-input-data)
