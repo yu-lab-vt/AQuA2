@@ -83,7 +83,7 @@ If you have any feedback or issue, you are welcome to either post issue in Issue
 # Download and installation
 ## MATLAB GUI
 
-1. Download latest version **[here](https://https://github.com/yu-lab-vt/AQuA/archive/master.zip)**.
+1. Download latest version **[here](https://github.com/yu-lab-vt/AQuA2/archive/master.zip)**.
 2. Unzip the downloaded file.
 3. Start MATLAB.
 4. Switch the current folder to AQuA2's folder.
