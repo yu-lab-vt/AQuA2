@@ -13,8 +13,8 @@ if(fh.needTemp.Value)
     opts.sigThr = str2double(fh.sigThr.Value);
     opts.maxDelay = str2double(fh.maxDelay.Value);
     opts.seedSzRatio = str2double(fh.seedSzRatio.Value);
-    opts.needRefine = fh.needRefine.Value;
-    opts.needGrow = fh.needGrow.Value;
+%     opts.needRefine = false; %fh.needRefine.Value;
+%     opts.needGrow = false; %fh.needGrow.Value;
     
 
     dF1 = getappdata(f,'dF1');

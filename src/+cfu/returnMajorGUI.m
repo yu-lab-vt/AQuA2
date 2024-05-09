@@ -1,5 +1,5 @@
 function returnMajorGUI(~,~,fCFU,f)
-
+    setappdata(f,'cfuOpts',cfu.getCfuOpts(fCFU));
     setappdata(f,'cfuInfo1',getappdata(fCFU,'cfuInfo1'));
     setappdata(f,'cfuInfo2',getappdata(fCFU,'cfuInfo2'));
     setappdata(f,'cols1',getappdata(fCFU,'cols1'));

@@ -16,7 +16,7 @@ pDat = uipanel(bMain);
 pTool = uipanel(bMain,'BorderType','none');
 
 %% %% left panel
-bWkfl = uigridlayout(pWkfl,'ColumnWidth',{'1x'},'RowHeight',{200,180,110,80,175},'Padding',[0,0,0,0],'RowSpacing',10);
+bWkfl = uigridlayout(pWkfl,'ColumnWidth',{'1x'},'RowHeight',{200,210,110,80,145},'Padding',[0,0,0,0],'RowSpacing',10);
 pDetect = uipanel('Parent',bWkfl,'Tag','pDetect');
 pOperation = uipanel('Parent',bWkfl,'Tag','pOperation');
 pGroup = uipanel('Parent',bWkfl,'Tag','pGroup');
@@ -31,7 +31,6 @@ uieditfield(deOutTab,'Value','0.5','Tag','alpha');
 uilabel(deOutTab,'Text','Overlap threshold (CH1)');
 uieditfield(deOutTab,'Value','3','Tag','minNumEvt');
 uilabel(deOutTab,'Text','Minimum number of event in CFU (CH1)');
-
 
 deOutTab2 = uigridlayout(bDeOut,'Tag','deOutTab2','RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20},'Padding',[10,0,10,10]);
 uieditfield(deOutTab2,'Value','0.5','Tag','alpha2');
@@ -49,7 +48,7 @@ deOutCon = uigridlayout(bDeOut,'RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{'
 uibutton(deOutCon,'push','Text','Run','Tag','deOutRun','ButtonPushedFcn',{@ui.detect.CFURunGui,fCFU,fOut});
 
 %% Operations
-bOp = uigridlayout(pOperation,'ColumnWidth',{'1x'},'RowHeight',{20,45,20,75},'Padding',[0,15,0,0],'RowSpacing',5);
+bOp = uigridlayout(pOperation,'ColumnWidth',{'1x'},'RowHeight',{20,45,20,100},'Padding',[0,15,0,0],'RowSpacing',5);
 uilabel(bOp,'Text','Operations','BackgroundColor',[0 0.3 0.6],'FontColor','white');
 
 bOp00 = uigridlayout(bOp,'ColumnWidth',{100,'1x'},'RowHeight',{20,20},'Padding',[10,0,0,0],'RowSpacing',5);
@@ -58,9 +57,11 @@ uilabel(bOp00,'Text','Add CFU to favorite table');
 uibutton(bOp00,'push','Text','add all','Tag','addAllButton','Enable','off','ButtonPushedFcn',{@cfu.allAllFav,fCFU});
 uilabel(bOp00,'Text','Add all CFUs to favorite table');
 uilabel(bOp,'Text','----- Window Size for calculting dependency -----','HorizontalAlignment','center');
-bOp0 = uigridlayout(bOp,'ColumnWidth',{100,'1x'},'RowHeight',{20,20,20},'Padding',[10,0,0,0],'RowSpacing',5);
-uieditfield(bOp0,'Tag','winSz','Value','0');
-uislider(bOp0,'Tag','sldWinSz','MajorTicks',[],'MinorTicks',[],'ValueChangedFcn',{@winSlider,fCFU,fOut});
+bOp0 = uigridlayout(bOp,'ColumnWidth',{100,'1x'},'RowHeight',{20,20,20,20},'Padding',[10,0,0,0],'RowSpacing',5);
+uieditfield(bOp0,'Tag','winSz','Enable','off','Value','0','ValueChangedFcn',{@cfu.winSzAdjust,fCFU,fOut,0});
+uislider(bOp0,'Tag','sldWinSz','Enable','off','MajorTicks',[],'MinorTicks',[],'ValueChangedFcn',{@cfu.winSzAdjust,fCFU,fOut,1});
+uieditfield(bOp0,'Tag','shift','Value','0','Enable','off');
+uilabel(bOp0,'Text','Dependency with shift (frames)');
 uibutton(bOp0,'state','Text','Pick CFUs','Tag','pickButton','Enable','off','ValueChangedFcn',{@cfu.pickCFU,fCFU,fOut,'pick'});
 uilabel(bOp0,'Text','Pick CFUs (only keep 2 in canvas)');
 uibutton(bOp0,'push','Text','All dependencies','Tag','calDep','Enable','off','ButtonPushedFcn',{@cfu.calAllDependency,fCFU,fOut});
@@ -398,12 +399,6 @@ if(needLoad && ~isempty(getappdata(fOut,'groupInfo')))
     cfu.updtGrpTable(fCFU,fOut);
 end
 
-end
-
-function winSlider(~,~,fCFU,f)
-    fh = guidata(fCFU);
-    fh.winSz.Value = num2str(round(fh.sldWinSz.Value));
-    ui.updtCFUcurve([],[],fCFU,f);
 end
 
 

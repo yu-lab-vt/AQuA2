@@ -1,12 +1,20 @@
-function [pvalue,ds,distribution] = calDependency(sequence1, sequence2, possibleDists)
-% condition is the first variable, occurrence is the second.
+function [pvalue,ds,distribution] = calDependency(sequence1, sequence2, shift, possibleDists)
+    % condition is the first variable, occurrence is the second.
 
     if(~exist('possibleDists','var'))
        possibleDists = 0:10; 
     end
     sequence1 = reshape(sequence1,[1,numel(sequence1)]);
     sequence2 = reshape(sequence2,[1,numel(sequence2)]);
+
+    % shift condition sequence, then process
+    if shift > 0
+        tmp = sequence1;
+        sequence1 = false(size(sequence1));
+        sequence1(1 + shift:end) = tmp(1:end - shift);
+    end
     [pvalue,ds,distribution] = getPvalue(sequence1,sequence2,possibleDists);
+    distribution(:,1) = distribution(:,1) + shift;
 end
 function [pvalue,d,distribution] = getPvalue(sequence1,sequence2,possibleDists)
     T = numel(sequence2);

@@ -68,47 +68,45 @@ function addDetectTab(f,pDeOut)
 
     % event detection: temporal segmentation
     bPhase = uigridlayout(pSp,'Padding',[5,5,5,5],'ColumnWidth',{'1x'},'RowHeight',{20,170},'RowSpacing',5,'ColumnSpacing',5);
-    uicheckbox(bPhase,'Text','Need temporal segmentation?','Value',1,'Tag','needTemp','ValueChangedFcn',{@ui.com.ableTemp,f});
-    gPhase = uigridlayout(bPhase,'Tag','tempSetting','Padding',[0,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20,20,20,20,20},'RowSpacing',5,'ColumnSpacing',5);
+    uicheckbox(bPhase,'Text','Enable temporal segmentation?','Value',1,'Tag','needTemp','ValueChangedFcn',{@ui.com.ableTemp,f});
+    gPhase = uigridlayout(bPhase,'Tag','tempSetting','Padding',[0,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20,20,20},'RowSpacing',5,'ColumnSpacing',5);
     p = uilabel(gPhase,'Text','----------------------Seed Detection----------------------','HorizontalAlignment','center');
     p.Layout.Column  = [1,2];
-    uieditfield(gPhase,'Value','0.01','Tag','seedSzRatio'); uilabel(gPhase,'Text','Seed size relative to active region');
+    uieditfield(gPhase,'Value','0.01','Tag','seedSzRatio'); uilabel(gPhase,'Text','Minimum seed size / active region');
     uieditfield(gPhase,'Value','3.5','Tag','sigThr'); uilabel(gPhase,'Text','Zscore of seed significance');
     p = uilabel(gPhase,'Text','----------- Merge regions with similar signals -----------','HorizontalAlignment','center');
     p.Layout.Column  = [1,2];
-    uieditfield(gPhase,'Value','0.8','Tag','maxDelay'); uilabel(gPhase,'Text','Allowed maximum dissimilarity in merging');
-    p = uicheckbox(gPhase,'Text','Peaks are temporally adjacent, need refine','Value',0,'Tag','needRefine');
-    p.Layout.Column  = [1,2];
-    p = uicheckbox(gPhase,'Text','Grow active regions according to signal pattern','Value',0,'Tag','needGrow');
-    p.Layout.Column  = [1,2];
+    uieditfield(gPhase,'Value','0.8','Tag','maxDelay'); uilabel(gPhase,'Text','Maximum dissimilarity allowed in merging');
+%     p = uicheckbox(gPhase,'Text','Peaks are temporally adjacent, need refine','Value',0,'Tag','needRefine');
+%     p.Layout.Column  = [1,2];
+%     p = uicheckbox(gPhase,'Text','Grow active regions according to signal pattern','Value',0,'Tag','needGrow');
+%     p.Layout.Column  = [1,2];
     
     % event detection: spatial segmentation
     bEvt = uigridlayout(pEvt,'Padding',[5,5,5,5],'ColumnWidth',{'1x'},'RowHeight',{20,105},'RowSpacing',5,'ColumnSpacing',5);
-    uicheckbox(bEvt,'Text','Need spatial segmentation?','Value',1,'Tag','needSpa','ValueChangedFcn',{@ui.com.ableSpa,f});
+    uicheckbox(bEvt,'Text','Enable spatial segmentation?','Value',1,'Tag','needSpa','ValueChangedFcn',{@ui.com.ableSpa,f});
     gEvt = uigridlayout(bEvt,'Tag','spaSetting','Padding',[0,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20,20},'RowSpacing',5,'ColumnSpacing',5);
     p = uilabel(gEvt,'Text','--------------Spatial segmentation setting--------------','HorizontalAlignment','center');
     p.Layout.Column  = [1,2];
-    uieditfield(gEvt,'Value','0.01','Tag','sourceSzRatio');uilabel(gEvt,'Text','Source size relative to super event');
+    uieditfield(gEvt,'Value','0.01','Tag','sourceSzRatio');uilabel(gEvt,'Text','Minimum source size / super event');
     uieditfield(gEvt,'Value','8','Tag','sourceSensitivity');uilabel(gEvt,'Text','Sensitivity to detect source (Level 1 to 10)');
-    p = uicheckbox(gEvt,'Text','Need temporal extension?','Value',1,'Tag','whetherExtend');
+    p = uicheckbox(gEvt,'Text','Enable temporal extension for events?','Value',1,'Tag','whetherExtend');
     p.Layout.Column  = [1,2];
     
     % Global signal
     bGlo = uigridlayout(pGlo,'Padding',[5,5,5,5],'ColumnWidth',{'1x'},'RowHeight',{20,20},'RowSpacing',5,'ColumnSpacing',5);
-    uicheckbox(bGlo,'Text','Whether detect global signal?','Value',0,'Tag','detectGlo','ValueChangedFcn',{@ui.com.ableGlo,f});
+    uicheckbox(bGlo,'Text','Enable global signal detection?','Value',0,'Tag','detectGlo','ValueChangedFcn',{@ui.com.ableGlo,f});
     gGlo = uigridlayout(bGlo,'Tag','gloSetting','Padding',[0,0,0,0],'ColumnWidth',{50,'1x'},'RowHeight',{'1x'},'RowSpacing',5,'ColumnSpacing',5);
     uieditfield(gGlo,'Value','20','Tag','gloDur');uilabel(gGlo,'Text','Global signal duration');
     gGlo.Visible = 'off';
 
     % Extract feature
-    bFea = uigridlayout(pFea,'Padding',[5,5,5,5],'ColumnWidth',{'1x'},'RowHeight',{20,66,20,'1x'},'RowSpacing',5,'ColumnSpacing',5);
-    uicheckbox(bFea,'Text','Ignore delay Tau','Value',1,'Tag','ignoreTau');
+    bFea = uigridlayout(pFea,'Padding',[5,5,5,5],'ColumnWidth',{'1x'},'RowHeight',{20,44,20,'1x'},'RowSpacing',5,'ColumnSpacing',5);
+    uicheckbox(bFea,'Text','Ignore calculating decay speed','Value',1,'Tag','ignoreTau');
     bProp = uigridlayout(bFea,'Padding',[0,0,0,0],'ColumnWidth',{10,'1x'},'RowHeight',{20,20,20},'RowSpacing',2,'ColumnSpacing',5);
-    p = uicheckbox(bProp,'Text','Propagation metric relative to starting point in','Value',0,'Tag','propMetric');
+    p = uicheckbox(bProp,'Text','Propagation-related metrics','Value',0,'Tag','propMetric');
     p.Layout.Column = [1,2];
-    p = uilabel(bProp,'Text','different directions (Propagation map is already');
-    p.Layout.Column = 2;
-    p = uilabel(bProp,'Text','calculated)');
+    p = uilabel(bProp,'Text','(Rising map is already obtained)');
     p.Layout.Column = 2;
     uicheckbox(bFea,'Text','Network features','Value',0,'Tag','networkFeatures');
 end

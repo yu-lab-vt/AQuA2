@@ -6,6 +6,7 @@ function updtCFUcurve(~,~,fCFU,f)
     sz = opts.sz;
     ofstGap = 0.3;
     selectCFUs = fh.selectCFUs;
+    shift = abs(round(str2num(fh.shift.Value)));
 %     ax = fh.curve;
     % delete existing curves
 %     hh = findobj(ax,'Type','line');
@@ -66,8 +67,8 @@ function updtCFUcurve(~,~,fCFU,f)
         
         maxDist = round(fh.sldWinSz.Value);
 
-        [pvalue1] = cfu.calDependency(seq1, seq2,0:maxDist); % condition is the first variable, occurrence is the second.
-        [pvalue2] = cfu.calDependency(seq2, seq1,0:maxDist); % condition is the first variable, occurrence is the second.
+        [pvalue1] = cfu.calDependency(seq1, seq2, shift, 0:maxDist); % condition is the first variable, occurrence is the second.
+        [pvalue2] = cfu.calDependency(seq2, seq1, shift, 0:maxDist); % condition is the first variable, occurrence is the second.
         txt0 = ['pValue - dependency: ',num2str(min(pvalue1,pvalue2))];
         text(T*0.6,1,txt0);
 

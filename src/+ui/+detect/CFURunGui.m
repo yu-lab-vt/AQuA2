@@ -234,6 +234,9 @@ function CFURunGui(~,~,fCFU,f)
     fh.pThr.Enable = 'off';
     fh.minNumCFU.Enable = 'off';
     fh.buttonGroup.Enable = 'off';
+    fh.winSz.Enable = 'on';
+    fh.sldWinSz.Enable = 'on';
+    fh.shift.Enable = 'on';
 %     fh.pThr.Enable = 'on';
 %     fh.minNumCFU.Enable = 'on';
 %     fh.buttonGroup.Enable = 'on';
