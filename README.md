@@ -104,9 +104,9 @@ For 3D imaging data, we recommend to use MATLAB 2022b.
 
 # Getting started
 If you are using AQuA2 for the first time, please read
-**[the step by step user guide](https://virginiatech-my.sharepoint.com/:p:/g/personal/mixl18_vt_edu/EdRMiv8EVYJJrzZMBsr2HFgBCjY8kaAdRGEM8h3QsLzS3w?e=w8T2IB)**.
+**[the step by step user guide](https://docs.google.com/presentation/d/1fnKKRvWpdwc58HuurtAVoM1PoryAGBSB/edit?usp=drive_link&ouid=104552898625388575115&rtpof=true&sd=true)**.
 
-Or you can check the **[details on output files, extracted features, and parameter settings](https://virginiatech-my.sharepoint.com/:w:/g/personal/mixl18_vt_edu/EYSRBaTprJhJqEmOJMpk5kIB98l41cVx6TqEXZFzWxpfSQ?e=noiTfb)**.
+Or you can check the **[details on output files, extracted features, and parameter settings](https://docs.google.com/document/d/1-arE5K7qeaVgNcnb_Rca3gF54kpf_HnI/edit?usp=drive_link&ouid=104552898625388575115&rtpof=true&sd=true)**.
 
 # Example datasets
 You can try these real data sets in AQuA2.
