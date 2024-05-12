@@ -118,6 +118,9 @@ for xxx = 1:numel(files)
          [seLst1,subEvtLst1,seLabel1,majorInfo1,opts,sdLst1,~,~] = se.seDetection(dF1,datOrg1,arLst1,opts,[]);
          if(~opts.singleChannel)
              [seLst2,subEvtLst2,seLabel2,majorInfo2,opts,sdLst2,~,~] = se.seDetection(dF2,dFOrg2,arLst2,opts,[]);
+         else
+            seLst2 = [];
+            subEvtLst2 = [];
          end
     else
         seLst1 = arLst1;
@@ -147,47 +150,64 @@ for xxx = 1:numel(files)
 
     %% Global signal detection
     if(opts.detectGlo)
+        gloOpts = opts;
+        gloOpts.minDur = opts.gloDur;
         disp('Global signal detection...');
         sz = opts.sz;
-        % channel 1        
+        fprintf('Remove detected local events ...\n')
         dF_glo1 = glo.removeDetected(dF1,evt1);
         % active region
-        [arLst1] = act.acDetect(dF_glo1,opts,evtSpatialMask,1,[]);  % foreground and seed detection
+        [gloArLst1] = act.acDetect(dF_glo1,gloOpts,evtSpatialMask,1,[]);  % foreground and seed detection
+        
         % temporal segmentation
-        if(fh.needTemp.Value)
-            [seLst1,subEvtLst1,seLabel1,majorInfo1,opts,~,~,~] = se.seDetection(dF_glo1,datOrg1,arLst1,opts,[]);
-            if(fh.needSpa.Value)
-                % spatial segmentation
-                [gloRiseLst1,datRGlo1,gloEvt1,~] = evt.se2evtTop(dF_glo1,seLst1,subEvtLst1,seLabel1,majorInfo1,opts,[]);
-            else
-                gloEvt1 = seLst1; gloRiseLst1 = []; datRGlo1 = 255*uint8(ones(size(datOrg1)));
-            end
+        if(opts.needTemp)
+            [gloSeLst1,gloSubEvtLst1,gloSeLabel1,gloMajorInfo1,gloOpts,~,~,~] = se.seDetection(dF_glo1,datOrg1,gloArLst1,gloOpts,[]);
         else
-            gloEvt1 = arLst1; gloRiseLst1 = [];datRGlo1 = 255*uint8(ones(size(datOrg1)));
+            gloSeLst1 = gloArLst1; 
+            gloSubEvtLst1 = gloArLst1; 
+            gloSeLabel1 = 1:numel(gloSeLst1);
+            gloMajorInfo1 = se.getMajority_Ac(gloSeLst1,gloSeLst1,dF_glo1,gloOpts);
         end
+    
+        if(opts.needSpa)
+            % spatial segmentation
+            [gloRiseLst1,gloDatR1,gloEvt1,~] = evt.se2evtTop(dF_glo1,gloSeLst1,gloSubEvtLst1,gloSeLabel1,gloMajorInfo1,gloOpts,[]);
+        else
+            gloDatR1 = [];
+            gloEvt1 = gloSeLst1;
+            gloRiseLst1 = [];
+        end
+        clear dF_glo1;
         
         %% channel 2
         if(~opts.singleChannel)
+            fprintf('Remove detected local events ...\n')
             dF_glo2 = glo.removeDetected(dF2,evt2);
             % active region
-            [arLst2] = act.acDetect(dF_glo2,opts,evtSpatialMask,2,[]);  % foreground and seed detection
-    
+            [gloArLst2] = act.acDetect(dF_glo2,gloOpts,evtSpatialMask,1,[]);  % foreground and seed detection
+            
             % temporal segmentation
-            if(fh.needTemp.Value)
-                [seLst2,subEvtLst2,seLabel2,majorInfo2,opts,~,~,~] = se.seDetection(dF_glo2,datOrg2,arLst2,opts,[]);
-                if(fh.needSpa.Value)
-                    [gloRiseLst2,datRGlo2,gloEvt2,~] = evt.se2evtTop(dF_glo2,seLst2,subEvtLst2,seLabel2,majorInfo2,opts,[]);
-                else
-                    gloEvt2 = seLst2; gloRiseLst2 = []; datRGlo2 = 255*uint8(ones(size(datOrg1)));
-                end
+            if(opts.needTemp)
+                [gloSeLst2,gloSubEvtLst2,gloSeLabel2,gloMajorInfo2,gloOpts,~,~,~] = se.seDetection(dF_glo2,datOrg2,gloArLst2,gloOpts,[]);
             else
-                gloEvt2 = arLst2; gloRiseLst2 = []; datRGlo2 = 255*uint8(ones(size(datOrg1)));
+                gloSeLst2 = gloArLst2; 
+                gloSubEvtLst2 = gloArLst2; 
+                gloSeLabel2 = 1:numel(gloSeLst2);
+                gloMajorInfo2 = se.getMajority_Ac(gloSeLst2,gloSeLst2,dF_glo2,gloOpts);
             end
+        
+            if(opts.needSpa)
+                % spatial segmentation
+                [gloRiseLst2,gloDatR2,gloEvt2,~] = evt.se2evtTop(dF_glo2,gloSeLst2,gloSubEvtLst2,gloSeLabel2,gloMajorInfo2,gloOpts,[]);
+            else
+                gloDatR2 = [];
+                gloEvt2 = gloSeLst2;
+                gloRiseLst2 = [];
+            end
+            clear dF_glo2;
         else
-            gloEvt2 = [];datRGlo2 = []; gloRiseLst2 = [];
+            gloEvt2 = [];gloDatR2 = []; gloRiseLst2 = [];
         end
-    else
-        gloEvt1 = []; gloRiseLst1 = [];gloEvt2 = []; gloRiseLst2= [];
     end
 
     %% feature extraction
@@ -262,11 +282,11 @@ for xxx = 1:numel(files)
     ov([ovName,'_Green']) = ov2;
     if(opts.detectGlo)
         ovName = 'Global Events';
-        ov1 = ui.over.getOv([],gloEvt1,opts.sz,datRGlo1,1);
+        ov1 = ui.over.getOv([],gloEvt1,opts.sz,gloDatR1,1);
         ov1.name = ovName;
         ov1.colorCodeType = {'Random'};
         ov([ovName,'_Red']) = ov1;
-        ov2 = ui.over.getOv([],gloEvt2,opts.sz,datRGlo2,2);
+        ov2 = ui.over.getOv([],gloEvt2,opts.sz,gloDatR2,2);
         ov2.name = ovName;
         ov2.colorCodeType = {'Random'};
         ov([ovName,'_Green']) = ov2;
