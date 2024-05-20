@@ -208,6 +208,9 @@ for xxx = 1:numel(files)
         else
             gloEvt2 = [];gloDatR2 = []; gloRiseLst2 = [];
         end
+    else
+        gloEvt1 = [];gloDatR1 = []; gloRiseLst1 = [];
+        gloEvt2 = [];gloDatR2 = []; gloRiseLst2 = [];
     end
 
     %% feature extraction
@@ -312,9 +315,6 @@ for xxx = 1:numel(files)
 
     res.stg.post = 1;
     res.stg.detect = 1;
-
-    bd = containers.Map;
-    bd('None') = [];
     res.bd = bd;
 
     %% save output
