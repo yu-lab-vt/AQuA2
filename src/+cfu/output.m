@@ -6,8 +6,8 @@ function output(~,~,fCFU,f)
     cfuOpts = cfu.getCfuOpts(fCFU);
     cfuInfo1 = getappdata(fCFU,'cfuInfo1');
     cfuInfo2 = getappdata(fCFU,'cfuInfo2');
-    relation = getappdata(fCFU,'relation');
-    groupInfo = getappdata(fCFU,'groupInfo');
-    save([path0,'_AQuA2_res_cfu.mat'],'cfuInfo1','cfuInfo2','relation','groupInfo','cfuOpts');
+    cfuRelation = getappdata(fCFU,'relation');
+    cfuGroupInfo = getappdata(fCFU,'groupInfo');
+    save([path0,'_AQuA2_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts');
 end
 

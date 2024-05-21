@@ -6,8 +6,8 @@ function returnMajorGUI(~,~,fCFU,f)
     setappdata(f,'cols2',getappdata(fCFU,'cols2'));
     setappdata(f,'colorMap1',getappdata(fCFU,'colorMap1'));
     setappdata(f,'colorMap2',getappdata(fCFU,'colorMap2'));
-    setappdata(f,'relation',getappdata(fCFU,'relation'));
-    setappdata(f,'groupInfo',getappdata(fCFU,'groupInfo'));
+    setappdata(f,'cfuRelation',getappdata(fCFU,'relation'));
+    setappdata(f,'cfuGroupInfo',getappdata(fCFU,'groupInfo'));
     setappdata(f,'needReCheckCFU',false);
     delete(fCFU);
 end

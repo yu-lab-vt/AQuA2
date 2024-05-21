@@ -1,44 +1,17 @@
-function CFURunGui(~,~,fCFU,f)
-    
-    fh = guidata(fCFU);
-    opts = getappdata(f,'opts');
-    evtLst1 = getappdata(f, 'evt1');
-    cfu_pre1 = getappdata(fCFU,'cfu_pre1');
-    fh.favCFUs = [];
-    cfu.updtCFUTable(fCFU);
-    
-    ff = waitbar(0,'Calculating events distance');
-
-    if(isempty(getappdata(fCFU,'cfu_pre1')) || numel(cfu_pre1.evtIhw)~=numel(evtLst1)) || (isfield(fh,'preSpa') && fh.preSpa~=fh.spatialOption.Value)
-        [cfu_pre1] = cfu.CFU_tmp_function(evtLst1,fh.spatialOption.Value,opts.sz,ff);
-        setappdata(fCFU,'cfu_pre1',cfu_pre1);
-        
-        if(~opts.singleChannel)
-            evtLst2 = getappdata(f, 'evt2');
-            [cfu_pre2] = cfu.CFU_tmp_function(evtLst2,fh.spatialOption.Value,opts.sz,ff);
-            setappdata(fCFU,'cfu_pre2',cfu_pre2);
-        end
-        fh.preSpa = fh.spatialOption.Value;
-    else
-        
-        if(~opts.singleChannel)
-            cfu_pre2 = getappdata(fCFU,'cfu_pre2');
-        end
+function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
+    opts = res.opts;
+    evtLst1 = res.evt1;
+    [cfu_pre1] = cfu.CFU_tmp_function(evtLst1,true,opts.sz);
+    if(~opts.singleChannel)
+        evtLst2 = res.evt2;
+        [cfu_pre2] = cfu.CFU_tmp_function(evtLst2,true,opts.sz);
     end
-    waitbar(1,ff);
-    delete(ff);
-    
-    alpha = str2double(fh.alpha.Value);
-    minNumEvt = str2double(fh.minNumEvt.Value);
-    
-    ff = waitbar(0,'Calculating cfu info');
-    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,true(numel(cfu_pre1.evtIhw),1),fh.averPro1,opts.sz,alpha,minNumEvt,false);
-    waitbar(0.3,ff);
-    title('CFU in channel 1');
-    datOrg1 = getappdata(f, 'datOrg1');
+    alpha = cfuOpts.cfuDetect.overlapThr1;
+    minNumEvt = cfuOpts.cfuDetect.minNumEvt1;
+    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,true(numel(cfu_pre1.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);
+    datOrg1 = res.datOrg1;
     [H,W,L,T] = size(datOrg1);
-    datVec = reshape(datOrg1,[],T);
-    datVec = datVec*(opts.maxValueDat1 - opts.minValueDat1) + opts.minValueDat1;
+    datVec = single(reshape(datOrg1,[],T));
     clear datOrg1;
     cfuCurves1 = zeros(numel(cfuRegions1),T);
     cfuDFFCurves1 = zeros(numel(cfuRegions1),T);
@@ -48,10 +21,8 @@ function CFURunGui(~,~,fCFU,f)
         idx = find(weightMap>0);
         cfuCurves1(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
         cfuDFFCurves1(i,:) = getdFF(cfuCurves1(i,:), opts.movAvgWin, opts.cut);
-%         cfuDFCurves1(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
     end
-    waitbar(0.6,ff);
-    
+
     % rising time judgement
     thrVec = 0.4:0.1:0.6;
     cfuOccurrence1 = false(numel(CFU_lst1),T);
@@ -64,7 +35,6 @@ function CFURunGui(~,~,fCFU,f)
             cfuMapVideo(evtLst1{label}) = i;
         end
     end
-    waitbar(0.9,ff);
     
     cfuMapVideo = reshape(cfuMapVideo,[],T);
     cfuTimeWindow1 = false(nCFU,T);
@@ -99,38 +69,14 @@ function CFURunGui(~,~,fCFU,f)
         cfuInfo{i,7} = cfuTimeWindow1(i,:); 
         cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
     end
-    setappdata(fCFU,'cfuInfo1',cfuInfo);
-    
-    % cfuMap
-    cfuMap1 = zeros(H,W,L,'uint16');
-    for i = 1:nCFU
-       cfuMap1(cfuRegions1{i}>0.1) = i;
-    end
-    fh.cfuMap1 = cfuMap1;
+    cfuInfo1 = cfuInfo;
 
-    dsSclXY = fh.sldDsXY.Value;
-    Data = se.myResize(zeros(opts.sz(1:3),'single'),1/dsSclXY);
-    overlayLabelDs = zeros(size(Data),'uint16');
-    cfuShow = label2idx(fh.cfuMap1);
-    for i = 1:numel(cfuShow)
-        if ~isempty(cfuShow{i})
-            [ih,iw,il] = ind2sub([opts.sz(1:3)],cfuShow{i});
-            pix0 = unique(sub2ind(size(Data),ceil(ih/dsSclXY),ceil(iw/dsSclXY),il));
-            overlayLabelDs(pix0) = i;
-        end
-    end
-    fh.cfuMapDS1 = overlayLabelDs;
-    
-    %%
     if(~opts.singleChannel)
-        alpha = str2double(fh.alpha2.Value);
-        minNumEvt = str2double(fh.minNumEvt2.Value);
-        [cfuRegions2,CFU_lst2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);    
-        waitbar(0.3,ff);
-        title('CFU in channel 2');
-        datOrg2 = getappdata(f, 'datOrg2');
-        datVec = reshape(datOrg2,[],T);
-        datVec = datVec*(opts.maxValueDat2 - opts.minValueDat2) + opts.minValueDat2;
+        alpha = cfuOpts.cfuDetect.overlapThr2;
+        minNumEvt = cfuOpts.cfuDetect.minNumEvt2;
+        [cfuRegions2,CFU_lst2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);    
+        datOrg2 = res.datOrg2;
+        datVec = single(reshape(datOrg2,[],T));
         clear datOrg2;
         cfuCurves2 = zeros(numel(cfuRegions2),T);
         cfuDFFCurves2 = zeros(numel(cfuRegions2),T);
@@ -140,10 +86,8 @@ function CFURunGui(~,~,fCFU,f)
             idx = find(weightMap>0);
             cfuCurves2(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
             cfuDFFCurves2(i,:) = getdFF(cfuCurves2(i,:), opts.movAvgWin, opts.cut);
-%             cfuDFFCurves2(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
         end
-        waitbar(0.6,ff);
-        evtLst2 = getappdata(f, 'evt2');
+        evtLst2 = res.evt2;
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
         cfuOccurrence2 = false(numel(CFU_lst2),T);
@@ -156,8 +100,6 @@ function CFURunGui(~,~,fCFU,f)
                 cfuMapVideo(evtLst2{label}) = i;
             end
         end
-        waitbar(0.9,ff);
-
         cfuMapVideo = reshape(cfuMapVideo,[],T);
         cfuTimeWindow2 = false(nCFU,T);
         cfuNonTimeWindow2 = false(nCFU,T);
@@ -191,55 +133,10 @@ function CFURunGui(~,~,fCFU,f)
             cfuInfo{i,7} = cfuTimeWindow2(i,:);
             cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
         end
-        setappdata(fCFU,'cfuInfo2',cfuInfo);
-        
-        cfuMap2 = zeros(H,W,L,'uint16');
-        for i = 1:nCFU
-           cfuMap2(cfuRegions2{i}>0.1) = i;
-        end
-        fh.cfuMap2 = cfuMap2;
-
-        dsSclXY = fh.sldDsXY.Value;
-        Data = se.myResize(zeros(opts.sz(1:3),'single'),1/dsSclXY);
-        overlayLabelDs = zeros(size(Data),'uint16');
-        cfuShow = label2idx(fh.cfuMap2);
-        for i = 1:numel(cfuShow)
-            if ~isempty(cfuShow{i})
-                [ih,iw,il] = ind2sub([opts.sz(1:3)],cfuShow{i});
-                pix0 = unique(sub2ind(size(Data),ceil(ih/dsSclXY),ceil(iw/dsSclXY),il));
-                overlayLabelDs(pix0) = i;
-            end
-        end
-        fh.cfuMapDS2 = overlayLabelDs;
+        cfuInfo2 = cfuInfo;
+    else
+        cfuInfo2 = [];
     end
-    waitbar(1,ff);
-    
-    fh.pickButton.Enable = 'on';
-    fh.viewButton.Enable = 'on';
-    fh.addAllButton.Enable = 'on';
-    fh.calDep.Enable = 'on';
-    fh.selectCFUs = [];
-    fh.pThr.Enable = 'off';
-    fh.minNumCFU.Enable = 'off';
-    fh.buttonGroup.Enable = 'off';
-    fh.winSz.Enable = 'on';
-    fh.sldWinSz.Enable = 'on';
-    fh.shift.Enable = 'on';
-%     fh.pThr.Enable = 'on';
-%     fh.minNumCFU.Enable = 'on';
-%     fh.buttonGroup.Enable = 'on';
-    fh.groupShow = 0;
-    guidata(fCFU,fh);
-    
-    try
-        rmappdata(fCFU,'relation');
-        rmappdata(fCFU,'groupInfo');
-    end
-    fh.pTool1.Visible = 'on';
-    cfu.updtGrpTable(fCFU,f);
-    ui.updtCFUint([],[],fCFU,true);
-    
-    delete(ff);
 end
 
 function dff = getdFF(x0,window,cut)
