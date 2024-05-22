@@ -1,24 +1,21 @@
 %% setup
 % 
 % Read Me:
-% Please set 'AQuA/cfg/parameters_for_batch' first.
+% Please set cfuOpts first.
 % The script will read the parameters from that excel to deal with data.
-% How many files you have, how many parameter settings should be in that excel.
 
-% 'p0' is the folder containing tifs you want to deal with.
-% Suggest sort the files in order, so that you can set the parameters 
-
+% 'pIn' is the folder containing AQuA2 saved files from `aqua_cmd_batch`.
 
 close all;
 clc;
 clearvars
 startup;  % initialize
 %% setting
-pIn = 'F:\Test_data\Check\'; %% tif folder
-pOut = 'F:\Test_data\Check\'; %% tif folder
+pIn = 'F:\Test_data\Check\'; % AQuA2 saved files folder
+pOut = 'F:\Test_data\CheckCFU\'; % The folder for cfu results
 
-whetherUpdateRes = true;
-whetherOutputCFURes = true;
+whetherUpdateRes = true;    % whether to update saved files
+whetherOutputCFURes = true; % whether to output cfu results in pOut folder
 
 cfuOpts.cfuDetect.overlapThr1 = 0.5;    % channel 1, overlap threshold
 cfuOpts.cfuDetect.overlapThr2 = 0.5;    % channel 2, overlap threshold
@@ -62,6 +59,6 @@ for xxx = 1:numel(files)
         cfures.cfuInfo2 = cfuInfo2;
         cfures.cfuRelation = cfuRelation;
         cfures.cfuGroupInfo = cfuGroupInfo;
-        save([pIn,f1(1:end-4),'_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts');
+        save([pOut,f1(1:end-4),'_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts');
     end
 end

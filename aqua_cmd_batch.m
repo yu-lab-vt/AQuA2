@@ -13,10 +13,14 @@ close all;
 clc;
 clearvars
 startup;  % initialize
-pIn = 'F:\Test_data\Check\'; %% tif folder
-pOut = 'F:\Test_data\Check\'; %% tif folder
-batchSet.outputMovie = true;
-batchSet.outputFeatureTable = true;
+pIn = 'F:\Test_data\Check\'; %% input tif folder
+pOut = 'F:\Test_data\Check\'; %% the folder for output results
+
+batchSet.propMetric = true;    % whether extract propagation-related features
+batchSet.networkFeatures = true; % whether extract network features
+
+batchSet.outputMovie = true;    % whether to output movie with detection overlay
+batchSet.outputFeatureTable = true; % whether to output feature table
 
 %% For cell boundary and landmark
 p_cell = '';   % cell boundary path, if you have
@@ -39,11 +43,13 @@ files = dir(fullfile(pIn,'*.tif'));
     
 for xxx = 1:numel(files)
     f1 = files(xxx).name; 
-    %% load setting
+    %% load setting (you can also manually modify setting here)
     opts = util.parseParam_for_batch(xxx);
     opts.singleChannel = true;
     opts.whetherExtend = true;
-    
+    opts.propMetric = batchSet.propMetric;
+    opts.networkFeatures = batchSet.networkFeatures;
+
     %% load data
     disp('Loading...');
     [datOrg1,datOrg2,opts] = burst.prep1(pIn,f1,pIn,[],[],opts);
@@ -252,13 +258,31 @@ for xxx = 1:numel(files)
     if opts.propMetric
         % propagation features
         fts1 = fea.getFeaturesPropTop(datR1, evt1, fts1, opts);
-        if ~isempty(evtGloLst1)
-            ftsGlo1 = fea.getFeaturesPropTop(datRGlo1, evtGloLst1, ftsGlo1, opts);
+        if ~isempty(gloEvt1)
+            ftsGlo1 = fea.getFeaturesPropTop(datRGlo1, gloEvt1, ftsGlo1, opts);
         end
         if(~opts.singleChannel)
             fts2 = fea.getFeaturesPropTop(datR2, evt2, fts2, opts);
-            if ~isempty(evtGloLst2)
-                ftsGlo2 = fea.getFeaturesPropTop(datRGlo2, evtGloLst2, ftsGlo2, opts);
+            if ~isempty(gloEvt2)
+                ftsGlo2 = fea.getFeaturesPropTop(datRGlo2, gloEvt2, ftsGlo2, opts);
+            end
+        end
+    end
+
+    %% network features
+    if opts.networkFeatures
+        %region, landmark, network and save results
+        btSt.filterMsk1 = true(numel(evt1), 1);
+        btSt.filterMsk2 = true(numel(evt2), 1);
+
+        fts1 = fea.getNetworkFeatures(datR1,evt1,fts1, btSt, bd, opts, 1);
+        if ~isempty(gloEvt1)
+            ftsGlo1 = fea.getNetworkFeatures(datRGlo1,gloEvt1,ftsGlo1, btSt, bd, opts, 1);
+        end
+        if(~opts.singleChannel)
+            fts2 = fea.getNetworkFeatures(datR2,evt2,fts2, btSt, bd, opts, 1);
+            if ~isempty(gloEvt2)
+                ftsGlo2 = fea.getNetworkFeatures(datRGlo2,gloEvt2,ftsGlo2, btSt, bd, opts, 1);
             end
         end
     end

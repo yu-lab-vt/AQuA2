@@ -123,4 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
-Currently no update for AQuA2.
+**05/22/2024:** 
+
+Modify `aqua_cmd_batch.m` to enable the extraction of network features.
+
+**05/21/2024:** 
+
+Add `post_cfu_cmd_batch.m` to enable the CFU identification and analysis based on the saved files of `aqua_cmd_batch.m`.
