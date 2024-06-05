@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**06/05/2024:** 
+
+Enable `aqua_cmd_batch.m` to output more features.
+
 **05/22/2024:** 
 
 Modify `aqua_cmd_batch.m` to enable the extraction of network features.
