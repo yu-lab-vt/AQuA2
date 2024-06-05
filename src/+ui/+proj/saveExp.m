@@ -193,12 +193,13 @@ if fh.expFt.Value==1
         writetable(ftTb00,ftb00,'WriteVariableNames',0,'WriteRowNames',1);
     end
 
+    %  for global events
+    if(opts.detectGlo)
+        writetable(getappdata(f,'featureTableGlo1'),[fpath,filesep,fname,'_Glo_Ch1.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
+    end
+
     if(~opts.singleChannel)
         ftTb = getappdata(f,'featureTable2');
-        if isempty(ftTb)
-            ui.detect.getFeatureTable(f);
-            ftTb = getappdata(f,'featureTable2');
-        end
         cc = ftTb{:,1};
 
         % all selected events
@@ -207,123 +208,58 @@ if fh.expFt.Value==1
         ftb = [fpath,filesep,fname,'_Ch2.csv'];
         writetable(ftTb1,ftb,'WriteVariableNames',0,'WriteRowNames',1);
         
-            % for favorite events
+        % for favorite events
         if ~isempty(evtFavList2)
             cc00 = cc(:,evtFavList2);
             ftTb00 = table(cc00,'RowNames',ftTb.Row);
             ftb00 = [fpath,filesep,fname,'_Ch2_favorite.xlsx'];
             writetable(ftTb00,ftb00,'WriteVariableNames',0,'WriteRowNames',1);
         end
+
+        %  for global events
+        if(opts.detectGlo)
+            writetable(getappdata(f,'featureTableGlo2'),[fpath,filesep,fname,'_Glo_Ch2.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
+        end
     end
     
     %% curves
     dffAlignedMat1 = getappdata(f,'dffAlignedMat1');
-    nEvt = size(dffAlignedMat1,1);
-    rowName = cell(nEvt,1);
-    risetime10 = zeros(nEvt,1);
     ftsLst1 = getappdata(f,'fts1');
-    for k = 1:nEvt
-       risetime10(k) = ftsLst1.curve.dff1Begin(k);
+    dffAlignedMat2 = getappdata(f,'dffAlignedMat2');
+    ftsLst2 = getappdata(f,'fts2');
+    fea.outputCurves(dffAlignedMat1, ftsLst1, dffAlignedMat2, ftsLst2, opts, fpath, fname);
+    if(opts.detectGlo)
+        dffAlignedMatGlo1 = getappdata(f,'dffAlignedMatGlo1');
+        ftsGlo1 = getappdata(f,'ftsGlo1');
+        dffAlignedMatGlo2 = getappdata(f,'dffAlignedMatGlo2');
+        ftsGlo2 = getappdata(f,'ftsGlo2');
+        fea.outputCurves(dffAlignedMatGlo1, ftsGlo1, dffAlignedMatGlo2, ftsGlo2, opts, fpath, [fname,'_Glo']);
     end
-    mat = [nan(nEvt,1),risetime10,dffAlignedMat1];
-    mat = [nan(1,113);mat];
-    mat = (num2cell(mat));
-    for k = 1:nEvt
-        mat{k+1,1} = ['Event ',num2str(k)];
-    end
-    mat{1,1} = 'Event ID';
-    mat{1,2} = '10% Rise time';
-    for k = 1:111
-        if k>11
-            mat{1,k+2} = ['df/f0 at +',num2str(k-11)];
-        else
-            mat{1,k+2} = ['df/f0 at ',num2str(k-11)];
-        end
-    end
-    mat = table(mat);
-    writetable(mat,[fpath,filesep,fname,'_Ch1_curves.xlsx'],'WriteVariableNames',0,'WriteRowNames',0);
-    if(~opts.singleChannel)
-        dffAlignedMat2 = getappdata(f,'dffAlignedMat2');
-        nEvt = size(dffAlignedMat2,1);
-        risetime10 = zeros(nEvt,1);
-        ftsLst2 = getappdata(f,'fts2');
-        for k = 1:nEvt
-           risetime10(k) = ftsLst2.curve.dff1Begin(k);
-        end
-        mat = [nan(nEvt,1),risetime10,dffAlignedMat2];
-        mat = [nan(1,113);mat];
-        mat = (num2cell(mat));
-        for k = 1:nEvt
-            mat{k+1,1} = ['Event ',num2str(k)];
-        end
-        mat{1,1} = 'Event ID';
-        mat{1,2} = '10% Rise time';
-        for k = 1:110
-            if k>11
-                mat{1,k+2} = ['df/f0 at +',num2str(k-11)];
-            else
-                mat{1,k+2} = ['df/f0 at ',num2str(k-11)];
-            end
-        end
-        mat = table(mat);
-        writetable(mat,[fpath,filesep,fname,'_Ch2_curves.xlsx'],'WriteVariableNames',0,'WriteRowNames',0);
-    end
-    
-    bd = getappdata(f,'bd');
     
     % for each region
-    if isfield(fts,'region') && ~isempty(fts.region) && isfield(fts.region.cell,'memberIdx') && ~isempty(fts.region.cell.memberIdx)
-        bdcell = bd('cell');
-        fpathRegion = [fpath,'\Regions'];
-        if ~exist(fpathRegion,'file') && ~isempty(fpathRegion)
-            mkdir(fpathRegion);    
-        end
-
-        if opts.sz(3) == 1
-            memSel = fts.region.cell.memberIdx(res.evtSelectedList1,:);
-            for ii=1:size(memSel,2)
-                mem00 = memSel(:,ii);
-                Name = 'None';
-                if numel(bdcell{ii})>=4
-                    Name = bdcell{ii}{4};
-                end
-                if strcmp(Name,'None')
-                   Name = num2str(ii); 
-                end
-                if(sum(mem00>0)==0)
-                    continue;
-                end
-                cc00 = cc(:,mem00>0);
-                ftTb00 = table(cc00,'RowNames',ftTb.Row);
-                ftb00 = [fpathRegion,filesep,fname,'ch1_region_',Name,'.xlsx'];
-                writetable(ftTb00,ftb00,'WriteVariableNames',0,'WriteRowNames',1);
-            end
-            
-            if(~opts.singleChannel)
-                fts = getappdata(f,'fts2');
-                memSel = fts.region.cell.memberIdx(res.evtSelectedList2,:);
-                for ii=1:size(memSel,2)
-                    mem00 = memSel(:,ii);
-                    Name = 'None';
-                    if numel(bdcell{ii})>=4
-                        Name = bdcell{ii}{4};
-                    end
-                    if strcmp(Name,'None')
-                       Name = num2str(ii); 
-                    end
-                    if(sum(mem00>0)==0)
-                        continue;
-                    end
-                    cc00 = cc(:,mem00>0);
-                    ftTb00 = table(cc00,'RowNames',ftTb.Row);
-                    ftb00 = [fpathRegion,filesep,fname,'ch2_region_',Name,'.xlsx'];
-                    writetable(ftTb00,ftb00,'WriteVariableNames',0,'WriteRowNames',1);
-                end
-            end
-        end
+    bd = getappdata(f,'bd');
+    ftTb1 = getappdata(f,'featureTable1');
+    ftTb2 = getappdata(f,'featureTable2');
+    fea.outputRegions(ftsLst1, ftTb1, evtSelectedList1, ftsLst2, ftTb2, evtSelectedList2, bd, opts, fpath, fname);
+    if(opts.detectGlo)
+        ftsGlo1 = getappdata(f,'ftsGlo1');
+        ftsGlo2 = getappdata(f,'ftsGlo2');
+        ftTbGlo1 = getappdata(f,'featureTableGlo1');
+        ftTbGlo2 = getappdata(f,'featureTableGlo2');
+        fea.outputRegions(ftsGlo1, ftTbGlo1, [], ftsGlo2, ftTbGlo2, [], bd, opts, fpath, fname);
     end
 
-    % region and landmark map
+    % rising maps
+    riseLst1 = getappdata(f,'riseLst1');
+    riseLst2 = getappdata(f,'riseLst2');
+    fea.outputRisingMap(riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath,'risingMaps');
+    if(opts.detectGlo)
+        gloRiseLst1 = getappdata(f,'gloRiseLst1');
+        gloRiseLst2 = getappdata(f,'gloRiseLst2');
+        fea.outputRisingMap(gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath,'risingMaps_Glo');
+    end
+
+    % landmark map
     if opts.sz(3)==1
         f00 = figure('Visible','off');
         dat = getappdata(f,'datOrg1');
@@ -342,131 +278,8 @@ if fh.expFt.Value==1
         axNow.DataAspectRatio = [1 1 1];
         colormap gray
         ui.mov.addPatchLineText(f,axNow,0,1)
-        % saveas(f00,[fpath,filesep,fname,'_landmark.fig']);
         saveas(f00,[fpath,filesep,fname,'_landmark.png'],'png');
         delete(f00);
-    end
-    
-
-    % rising maps
-    if opts.sz(3)==1
-        riseLst1 = getappdata(f,'riseLst1');
-        if ~isempty(evtFavList1) && ~isempty(riseLst1)
-            f00 = figure('Visible','off');
-            axNow = axes(f00);
-            fpathRising = [fpath,filesep,'risingMaps_CH1'];
-            if ~exist(fpathRising,'file')
-                mkdir(fpathRising);
-            end
-
-            for ii=1:numel(evtFavList1)
-                rr = riseLst1{evtFavList1(ii)};
-                riseMap = rr.dlyMap50;
-                rs = riseMap(~isnan(riseMap(:)));
-                maxRs = ceil(max(rs));
-                minRs = floor(min(rs));
-                h = imagesc(axNow,riseMap);
-                colormap(axNow,jet);
-                colorbar(axNow);
-                set(h, 'AlphaData', ~isnan(riseMap));
-                try
-                    caxis(axNow,[minRs,maxRs]);
-                end
-                xx = axNow.XTickLabel;
-                for jj=1:numel(xx)
-                    xx{jj} = num2str(str2double(xx{jj})+min(rr.rgw)-1);
-                end
-                axNow.XTickLabel = xx;
-                xx = axNow.YTickLabel;
-                for jj=1:numel(xx)
-                    xx{jj} = num2str(str2double(xx{jj})+min(rr.rgw)-1);
-                end
-                axNow.YTickLabel = xx;
-                axNow.DataAspectRatio = [1 1 1];
-                saveas(f00,[fpathRising,filesep,num2str(evtFavList1(ii)),'.png'],'png');
-            end
-        end
-    
-        if(~opts.singleChannel)
-            riseLst2 = getappdata(f,'riseLst2');
-            if ~isempty(evtFavList2) && ~isempty(riseLst2)
-                f00 = figure('Visible','off');
-                axNow = axes(f00);
-                fpathRising = [fpath,filesep,'risingMaps_CH2'];
-                if ~exist(fpathRising,'file')
-                    mkdir(fpathRising);
-                end
-                for ii=1:numel(evtFavList2)
-                    rr = riseLst2{evtFavList2(ii)};
-                    riseMap = rr.dlyMap50;
-                    rs = riseMap(~isnan(riseMap(:)));
-                    maxRs = ceil(max(rs));
-                    minRs = floor(min(rs));
-                    h = imagesc(axNow,riseMap);
-                    colormap(axNow,jet);
-                    colorbar(axNow);
-                    set(h, 'AlphaData', ~isnan(riseMap));
-                    try
-                        caxis(axNow,[minRs,maxRs]);
-                    end
-                    xx = axNow.XTickLabel;
-                    for jj=1:numel(xx)
-                        xx{jj} = num2str(str2double(xx{jj})+min(rr.rgw)-1);
-                    end
-                    axNow.XTickLabel = xx;
-                    xx = axNow.YTickLabel;
-                    for jj=1:numel(xx)
-                        xx{jj} = num2str(str2double(xx{jj})+min(rr.rgw)-1);
-                    end
-                    axNow.YTickLabel = xx;
-                    axNow.DataAspectRatio = [1 1 1];
-                    saveas(f00,[fpathRising,filesep,num2str(evtFavList2(ii)),'.png'],'png');
-                end
-            end
-        end
-    else
-        riseLst1 = getappdata(f,'riseLst1');
-        if ~isempty(evtFavList1)
-            fpathRising = [fpath,filesep,'risingMaps_CH1'];
-            if ~exist(fpathRising,'file')
-                mkdir(fpathRising);
-            end
-
-            jm = jet(1000);
-            for ii=1:numel(evtFavList1)
-                rr = riseLst1{evtFavList1(ii)};
-                riseMap = nan(opts.sz(1:3));
-                riseMap(rr.rgh,rr.rgw,rr.rgl) = rr.dlyMap50;
-                maxRs = ceil(max(riseMap(:)));
-                minRs = floor(min(riseMap(:)));
-                riseMap = round(riseMap);
-                riseMap(isnan(riseMap)) = 0;
-                dlyLst = label2idx(riseMap);
-                rPlane = ones(curSz);
-                gPlane = ones(curSz);
-                bPlane = ones(curSz);
-                szCluster = cellfun(@numel,dlyLst);
-                dlyLst = dlyLst(szCluster>0);
-                for i = 1:numel(dlyLst)
-                    pix = dlyLst{i};
-                    delay = riseMap(pix(1));
-                    [ih,iw,il] = ind2sub(opts.sz(1:3),pix);
-                    if maxRs>minRs
-                        rId = round((delay-minRs)/(maxRs-minRs)*999+1);
-                    else
-                        rId = 500;
-                    end
-                    rId = max(min(rId,1000),1);
-                    pix = sub2ind(curSz,ceil(ih/dsSclXY),ceil(iw/dsSclXY),il);
-                    rPlane(pix) = jm(rId,1);
-                    gPlane(pix) = jm(rId,2);
-                    bPlane(pix) = jm(rId,3);
-                end
-                mapOut = cat(4,rPlane,gPlane,bPlane);
-                mapOut = permute(mapOut,[1,2,4,3]);
-                io.writeTiffSeq([fpathRising,filesep,num2str(evtFavList1(ii)),'.tiff'],mapOut,8);
-            end
-        end
     end
 end
 

@@ -18,16 +18,23 @@ end
 
 % show in event manager and for exporting
 fts1 = getappdata(f,'fts1');
-evtLst1 = getappdata(f, 'evt1');
-featureTable1 = fea.getFeatureTable00(fts1,evtLst1,lmkLst,f);
+featureTable1 = fea.getFeatureTable00(fts1,lmkLst,f);
+
+ftsGlo1 = getappdata(f,'ftsGlo1');
+featureTableGlo1 = fea.getFeatureTable00(ftsGlo1,lmkLst,f);
+
 if(~opts.singleChannel)
     fts2 = getappdata(f,'fts2');
-    evtLst2 = getappdata(f, 'evt2');
-    featureTable2 = fea.getFeatureTable00(fts2,evtLst2,lmkLst,f);
+    featureTable2 = fea.getFeatureTable00(fts2,lmkLst,f);
+
+    ftsGlo2 = getappdata(f,'ftsGlo2');
+    featureTableGlo2 = fea.getFeatureTable00(ftsGlo2,lmkLst,f);
 else
-    featureTable2 = [];
+    featureTable2 = []; featureTableGlo2 = [];
 end
 setappdata(f,'featureTable1',featureTable1);
 setappdata(f,'featureTable2',featureTable2);
+setappdata(f,'featureTableGlo1',featureTableGlo1);
+setappdata(f,'featureTableGlo2',featureTableGlo2);
 
 end

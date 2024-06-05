@@ -47,6 +47,8 @@ for xxx = 1:numel(files)
     opts = util.parseParam_for_batch(xxx);
     opts.singleChannel = true;
     opts.whetherExtend = true;
+
+%     opts.detectGlo = true;
     opts.propMetric = batchSet.propMetric;
     opts.networkFeatures = batchSet.networkFeatures;
 
@@ -100,10 +102,10 @@ for xxx = 1:numel(files)
     end
     
     [dF1,opts] = pre.baselineRemoveAndNoiseEstimation(datOrg1,opts,evtSpatialMask,1,[]);
-    opts.maxdF1 = min(20,max(dF1(:)));
+    opts.maxdF1 = min(100,max(dF1(:)));
     if(~opts.singleChannel)
         [dF2,opts] = pre.baselineRemoveAndNoiseEstimation(datOrg2,opts,evtSpatialMask,2,[]);
-        opts.maxdF2 = min(20,max(dF2(:)));
+        opts.maxdF2 = min(100,max(dF2(:)));
     else
         dF2 = []; 
     end
@@ -226,14 +228,14 @@ for xxx = 1:numel(files)
     opts.minValueDat = opts.minValueDat1;
     opts.tempVarOrg = opts.tempVarOrg1;
     opts.correctPars = opts.correctPars1;
-    [fts1, dffMat1, dMat1,~] = fea.getFeaturesTop(datOrg1, evt1, opts, []);
+    [fts1, dffMat1, dMat1,dffAlignedMat1] = fea.getFeaturesTop(datOrg1, evt1, opts, []);
     fts1.channel = 1;
 
     if ~isempty(gloEvt1)
         [ftsGlo1, dffMatGlo1, dMatGlo1,dffAlignedMatGlo1] = fea.getFeaturesTop(datOrg1, gloEvt1, opts, []);
         ftsGlo1.channel = 1;
     else
-        ftsGlo1 = [];
+        ftsGlo1 = []; dffAlignedMatGlo1= [];
     end
 
     if(~opts.singleChannel)
@@ -242,16 +244,17 @@ for xxx = 1:numel(files)
         opts.minValueDat = opts.minValueDat2;
         opts.tempVarOrg = opts.tempVarOrg2;
         opts.correctPars = opts.correctPars2;
-        [fts2, dffMat2, dMat2,~] = fea.getFeaturesTop(datOrg2, evt2, opts, gg);
+        [fts2, dffMat2, dMat2,dffAlignedMat2] = fea.getFeaturesTop(datOrg2, evt2, opts, gg);
         fts2.channel = 2;
         if ~isempty(gloEvt2)
-            [ftsGlo2, dffMatGlo2, dMatGlo2,~] = fea.getFeaturesTop(datOrg2, gloEvt2, opts, []);
+            [ftsGlo2, dffMatGlo2, dMatGlo2,dffAlignedMatGlo2] = fea.getFeaturesTop(datOrg2, gloEvt2, opts, []);
             ftsGlo2.channel = 1;
         else
-            ftsGlo2 = [];
+            ftsGlo2 = []; dffAlignedMatGlo2 = [];
         end
     else
-        fts2 = []; dffMat2 = []; dMat2 = []; ftsGlo2 = [];
+        fts2 = []; dffMat2 = []; dMat2 = []; dffAlignedMat2 = [];
+        ftsGlo2 = []; dffMatGlo2 = []; dMatGlo2 = []; dffAlignedMatGlo2 = [];
     end
 
     %% Propagation metric
@@ -361,17 +364,46 @@ for xxx = 1:numel(files)
         else
             lmkLst = [];
         end
-        featureTable1 = fea.getFeatureTable00(fts1,evt1,[]);
-        ftb1 = [pOut,name,'_AQuA2_Ch1.csv'];
-        writetable(featureTable1,ftb1,'WriteVariableNames',0,'WriteRowNames',1);
-        if(~opts.singleChannel)
-            featureTable2 = fea.getFeatureTable00(fts2,evt2,[]);
-            ftb2 = [pOut,name,'_AQuA2_Ch2.csv'];
-            writetable(featureTable2,ftb2,'WriteVariableNames',0,'WriteRowNames',1);
+        fpath = pOut(1:end-1);
+        fname = [name,'_AQuA2'];
+
+        ftTb1 = fea.getFeatureTable00(fts1,lmkLst,[]);
+        ftTb2 = fea.getFeatureTable00(fts2,lmkLst,[]);
+        ftTbGlo1 = fea.getFeatureTable00(ftsGlo1,lmkLst,[]);
+        ftTbGlo2 = fea.getFeatureTable00(ftsGlo2,lmkLst,[]);
+
+        writetable(ftTb1,[fpath,filesep,fname,'_Ch1.csv'],'WriteVariableNames',0,'WriteRowNames',1);
+        if(opts.detectGlo)
+            writetable(ftTbGlo1,[fpath,filesep,fname,'_Glo_Ch1.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
         end
+        if(~opts.singleChannel)
+            writetable(ftTb2,[fpath,filesep,fname,'_Ch2.csv'],'WriteVariableNames',0,'WriteRowNames',1);
+            if(opts.detectGlo)
+                writetable(ftTbGlo2,[fpath,filesep,fname,'_Glo_Ch2.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
+            end
+        end
+    
+        %% curves
+        fea.outputCurves(dffAlignedMat1, fts1, dffAlignedMat2, fts2, opts, fpath, fname);
+        if(opts.detectGlo)
+            fea.outputCurves(dffAlignedMatGlo1, ftsGlo1, dffAlignedMatGlo2, ftsGlo2, opts, fpath, [fname,'_Glo']);
+        end
+    
+        %% for each region
+        fea.outputRegions(fts1, ftTb1, [], fts2, ftTb2, [], bd, opts, fpath, fname);
+        if(opts.detectGlo)
+            fea.outputRegions(ftsGlo1, ftTbGlo1, [], ftsGlo2, ftTbGlo2, [], bd, opts, fpath, fname);
+        end
+    
+        %% rising maps
+        fea.outputRisingMap(riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst1), opts, fpath, 'risingMaps');
+        if(opts.detectGlo)
+            fea.outputRisingMap(gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,'risingMaps_Glo');
+        end
+
     end
 
-%% export movie
+    %% export movie
     if batchSet.outputMovie
         if opts.sz(3) == 1
             ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);

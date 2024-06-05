@@ -1,22 +1,22 @@
-function featureTable = getFeatureTable00(fts,evtLst,lmkLst,f)
-    if exist('ff','var')&&~isempty(ff)
+function featureTable = getFeatureTable00(fts,lmkLst,f)
+    if exist('f','var')&&~isempty(f)
         tb = getappdata(f,'userFeatures');
     else
         tb = readtable('userFeatures.csv','Delimiter',',');
     end
 
-    if isempty(evtLst) && exist('ff','var')&&~isempty(ff)
-        featureTable = table(nan(0,1));
-        setappdata(f,'featureTable',featureTable);
-        return
-    end
-
-    nEvt = numel(fts.basic.area);
     nFt = numel(tb.Name);
-    ftsTb = cell(nFt,nEvt);
     ftsName = cell(nFt,1);
-    ftsCnt = 1;
+
+    if isempty(fts)
+        featureTable = table(cell(nFt,0),'RowNames',tb.Name);
+        return;
+    end
+    nEvt = numel(fts.basic.area);
     dixx = fts.notes.propDirectionOrder;
+
+    ftsTb = cell(nFt,nEvt);
+    ftsCnt = 1;
     valid = false(100,1);
 
     for ii=1:nFt
