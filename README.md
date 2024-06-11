@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**06/11/2024:** 
+
+Add MEX files to enable spatial segmentation of AQuA2 in Mac system.
+
 **06/05/2024:** 
 
 Enable `aqua_cmd_batch.m` to output more features.
