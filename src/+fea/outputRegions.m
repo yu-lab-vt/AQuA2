@@ -1,9 +1,11 @@
 function outputRegions(fts1, ftTb1, selected1, fts2, ftTb2, selected2, bd, opts, fpath, fname)
     % for each region
-    bdcell = bd('cell');
-    outputRegions00(fts1, ftTb1, selected1, bdcell, opts, fpath, fname, '_Ch1_region_');
-    if(~opts.singleChannel)
-        outputRegions00(fts2, ftTb2, selected2, bdcell, opts, fpath, fname, '_Ch2_region_');
+    if bd.isKey('cell')
+        bdcell = bd('cell');
+        outputRegions00(fts1, ftTb1, selected1, bdcell, opts, fpath, fname, '_Ch1_region_');
+        if(~opts.singleChannel)
+            outputRegions00(fts2, ftTb2, selected2, bdcell, opts, fpath, fname, '_Ch2_region_');
+        end
     end
 end
 
