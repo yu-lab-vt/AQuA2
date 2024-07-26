@@ -1,6 +1,6 @@
 ![AQuA2 Logo](img/logo1.png)
 ----------------------------------
-AQuA2 (Activity Quantification and Analysis) is a tool for quantifying spatiotemporal signals across biosensors, cell types, organs,  animal models and imaging modalities of biological fluorescent imaging data.
+AQuA2 (Activity Quantification and Analysis) is a tool for quantifying spatiotemporal signals across biosensors, cell types, organs,  animal models and imaging modalities of biological fluorescent imaging data. AQuA can be pronounced as /ˈɑː.kwə/.
 
 If you have any feedback or issue, you are welcome to either post issue in Issues section or send email to yug@tsinghua.edu.cn (Guoqiang Yu at Tsinghua University).
 
