@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**08/16/2024:** 
+
+Reuse some landmark features used in AQuA for 2D time-lapse imaging data.
+
 **06/11/2024:** 
 
 Add MEX files to enable spatial segmentation of AQuA2 in Mac system.

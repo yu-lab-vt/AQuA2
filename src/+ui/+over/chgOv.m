@@ -6,7 +6,11 @@ opts = getappdata(f,'opts');
 
 % read overlay features
 if op==0
-    tb = readtable('userFeatures.csv','Delimiter',',');
+    if opts.sz(3) == 1
+        tb = readtable('userFeatures2.csv','Delimiter',',');
+    else
+        tb = readtable('userFeatures.csv','Delimiter',',');
+    end
     setappdata(f,'userFeatures',tb);
     fh.overlayFeature.Items = tb.Name(2:end);
     fprintf('Reading done.\n');

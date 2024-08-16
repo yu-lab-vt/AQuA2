@@ -5,7 +5,7 @@ function res = evt2lmkProp1(datS,lmkMsk,thrRg)
 % !!! Time duration must be same as event
 % TODO: allow landmark to be outside datS (input as (x,y) pairs)
 
-[H,W,L,~] = size(datS);
+[H,W,~] = size(datS);
 nLmk = numel(lmkMsk);
 
 sck = min(sqrt(10000/H/W),1);
@@ -16,9 +16,9 @@ for kk=1:nLmk
     m0s = imresize(m0,sck);
     lmkMskx{kk} = m0s>0;
 end
-[H,W,L,T] = size(datSx);
+[H,W,T] = size(datSx);
 
-if H*W*L*T>100^4
+if H*W*T>100^3
     isBig = 1;
     fprintf('Propagation for landmark ...\n')
 else
@@ -33,8 +33,8 @@ chgAwayAftReach = zeros(1,nLmk);
 chgTowardThrFrame = zeros(numel(thrRg),T,nLmk);
 chgAwayThrFrame = zeros(numel(thrRg),T,nLmk);
 
-pixTwd = zeros(H*W*L,nLmk);
-pixAwy = zeros(H*W*L,nLmk);
+pixTwd = zeros(H*W,nLmk);
+pixAwy = zeros(H*W,nLmk);
 
 for kk=1:numel(thrRg)
     if isBig>0
@@ -51,7 +51,7 @@ for kk=1:numel(thrRg)
     
     % impute missed frames
     % some times some frame could be missed due to some post processing
-    [~,~,~,it] = ind2sub([H,W,L,T],loc0);
+    [~,~,it] = ind2sub([H,W,T],loc0);
     tRg = min(it):max(it);
     if numel(tRg)==1
         continue
@@ -59,7 +59,7 @@ for kk=1:numel(thrRg)
     for tt=1:numel(tRg)
         ixSel = it==tRg(tt);
         if isempty(ixSel)
-            evt0(:,:,:,tRg(tt)) = evt0(:,:,:,tRg(tt)-1);
+            evt0(:,:,tRg(tt)) = evt0(:,:,tRg(tt)-1);
         end
     end
     
@@ -68,17 +68,17 @@ for kk=1:numel(thrRg)
     % use geodesic distance; if landmark outside event, use Euclidean distances
     % keep landmark simple
     D = cell(nLmk,1);
-    evt0s = squeeze(sum(evt0,4)>0);
+    evt0s = squeeze(sum(evt0,3)>0);
     for ii=1:nLmk
         msk00 = lmkMskx{ii};
-        [h0,w0,l0] = find(msk00>0);
+        [h0,w0] = find(msk00>0);
         %h00 = mean(h0); w00 = mean(w0);
         %msk00 = zeros(H,W); msk00(max(round(h00),1),max(round(w00),1)) = 1;
         if sum(evt0s(msk00>0))==0
-            [h1,w1,l1] = find(evt0s>0);
-            tmp = inf(H,W,L);
+            [h1,w1] = find(evt0s>0);
+            tmp = inf(H,W);
             for jj=1:numel(h0)
-                dist00 = sqrt((h1-h0(jj)).^2+(w1-w0(jj)).^2+(l1-l0(jj)).^2);            
+                dist00 = sqrt((h1-h0(jj)).^2+(w1-w0(jj)).^2);            
                 tmp(evt0s>0) = min(tmp(evt0s),dist00);
             end
         else
@@ -92,10 +92,10 @@ for kk=1:numel(thrRg)
     lblMap = zeros(H,W,numel(tRg));    
     ccLst = cell(numel(tRg),1);  % region lists in each frame
     for ii=1:numel(tRg)
-        xCur = evt0(:,:,:,tRg(ii));
+        xCur = evt0(:,:,tRg(ii));
         [B,L] = bwboundaries(xCur,8,'noholes');
         bdLst{ii} = B;
-        lblMap(:,:,:,ii) = L;
+        lblMap(:,:,ii) = L;
         ccLst{ii} = label2idx(L);
     end
 
@@ -105,7 +105,7 @@ for kk=1:numel(thrRg)
     tReach = nan(1,nLmk);  % time for reaching a landmark
     for ii=2:numel(tRg)
         % check reach the landmark or not
-        lblCur = lblMap(:,:,:,ii);
+        lblCur = lblMap(:,:,ii);
         for jj=1:nLmk
             n11 = sum(lblCur(lmkMskx{jj}>0));
             insideLmk = n11>0;
@@ -115,7 +115,7 @@ for kk=1:numel(thrRg)
         end
         
         ccCur = ccLst{ii};
-        lblPre = lblMap(:,:,:,ii-1);
+        lblPre = lblMap(:,:,ii-1);
         for jj=1:numel(ccCur)
             % regions in previous frame that connect to this region
             cc0 = ccCur{jj};
@@ -165,11 +165,11 @@ for kk=1:numel(thrRg)
             
             dxPos = zeros(numel(bdCur),nLmk);
             dxNeg = zeros(numel(bdCur),nLmk);
-            [h0,w0,l0] = ind2sub([H,W,L],bdCur);
-            [h1,w1,l1] = ind2sub([H,W,L],bdPre);
+            [h0,w0] = ind2sub([H,W],bdCur);
+            [h1,w1] = ind2sub([H,W],bdPre);
             for uu=1:numel(bdCur)
                 % weighted closest starting frontier point                          
-                d00 = sqrt((h0(uu)-h1).^2+(w0(uu)-w1).^2+(l0(uu)-l1).^2);
+                d00 = sqrt((h0(uu)-h1).^2+(w0(uu)-w1).^2);
                 d01 = d00.*bdPreWt;
                 [~,ix] = min(d01);
                 d00min = d00(ix);                

@@ -23,7 +23,11 @@ if ~isempty(lmkLst)
     resReg.landmarkDist = fea.evt2lmkProp(evts,lBorder,sz,muPerPix);
     
     % frontier based propagation features related to landmark
-    rr = fea.evt2lmkProp2Wrap(datS,evts,lmkLst,muPerPix,minThr);
+    if sz(3) == 1
+        rr = fea.evt2lmkProp1Wrap(datS,evts,lmkLst,muPerPix,minThr);
+    else
+        rr = fea.evt2lmkProp2Wrap(datS,evts,lmkLst,muPerPix,minThr);
+    end
     resReg.landmarkDir = rr;
 else
     resReg.landMark = [];

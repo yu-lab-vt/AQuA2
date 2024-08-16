@@ -3,6 +3,11 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
         tb = getappdata(f,'userFeatures');
     else
         tb = readtable('userFeatures.csv','Delimiter',',');
+        if isfield(fts.basic,'peri')
+            tb = readtable('userFeatures2.csv','Delimiter',',');
+        else
+            tb = readtable('userFeatures.csv','Delimiter',',');
+        end
     end
 
     nFt = numel(tb.Name);

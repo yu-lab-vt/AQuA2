@@ -2,7 +2,7 @@ function [rr,res1] = evt2lmkProp1Wrap(dRecon,evts,lmkMsk,muPerPix,minThr)
 % evt2lmkProp1Wrap extract propagation direciton related to landmarks
 % call evt2lmkProp1 on each data patch
 
-[H,W,L,T] = size(dRecon);
+[H,W,T] = size(squeeze(dRecon));
 
 m2 = muPerPix^2;
 m3 = muPerPix^3;
@@ -36,28 +36,25 @@ for nn=1:numel(evts)
         continue
     end
     
-    [h0,w0,l0,t0] = ind2sub([H,W,L,T],evt0);
+    [h0,w0,t0] = ind2sub([H,W,T],evt0);
     rgH = max(min(h0)-2,1):min(max(h0)+2,H);
     rgW = max(min(w0)-2,1):min(max(w0)+2,W);
-    rgL = max(min(l0)-2,1):min(max(l0)+2,L);
     rgT = min(t0):max(t0);
     H1 = numel(rgH);
     W1 = numel(rgW);
-    L1 = numel(rgL);
     T1 = numel(rgT);
     
     % data
-    datS = dRecon(rgH,rgW,rgL,rgT);
+    datS = dRecon(rgH,rgW,rgT);
     if isa(datS,'uint8')
         datS = double(datS)/255;
     end
     h0a = h0-rgH(1)+1;
     w0a = w0-rgW(1)+1;
-    l0a = l0-rgL(1)+1;
     t0a = t0-rgT(1)+1;
-    evt0 = sub2ind([H1,W1,L1,T1],h0a,w0a,l0a,t0a);
-    msk = false(size(datS));
-    msk(evt0) = true;
+    evt0 = sub2ind([H1,W1,T1],h0a,w0a,t0a);
+    msk = zeros(size(datS));
+    msk(evt0) = 1;
     datS = datS.*msk;
     
     % put landmark inside cropped event
@@ -65,16 +62,13 @@ for nn=1:numel(evts)
     % for outside part, stick it to the border
     lmkMsk1 = cell(nLmk,1);
     for ii=1:nLmk
-        [h0k,w0k,l0k] = ind2sub([H,W,L],lmkLst{ii});
-        msk0 = zeros(H1,W1,L1);
+        [h0k,w0k] = ind2sub([H,W],lmkLst{ii});
+        msk0 = zeros(H1,W1);
         h1k = h0k - min(rgH) + 1;
         w1k = w0k - min(rgW) + 1;
-        l1k = l0k - min(rgL) + 1;
         h1ks = min(max(h1k,1),H1);
         w1ks = min(max(w1k,1),W1);
-        l1ks = min(max(l1k,1),L1);
-        mskPix = sub2ind(size(msk0),h1ks,w1ks,l1ks);
-        msk0(mskPix) = true;
+        msk0(h1ks,w1ks) = 1;
         lmkMsk1{ii} = msk0;
     end
     
