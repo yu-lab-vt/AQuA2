@@ -39,6 +39,8 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                 end
                 ftsTb(ftsCnt,:) = num2cell(reshape(x,1,[]));
                 ftsName1 = [ftsName0,' - landmark ',num2str(xxLmk)];
+                ftsName{ftsCnt} = ftsName1;
+                ftsCnt = ftsCnt + 1;
             end
         elseif ~isempty(strfind(cmdSel0,'xxDi')) %#ok<STREMP>
             for xxDi=1:numel(dixx)
@@ -49,9 +51,11 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                 catch
                     fprintf('Feature "%s" not selected\n',ftsName0)
 %                     ftsTb(ftsCnt,:) = nan;
-                end            
+                end    
                 ftsName1 = [ftsName0,' - ',dixx{xxDi}];
-            end
+                ftsName{ftsCnt} = ftsName1;
+                ftsCnt = ftsCnt + 1;
+            end 
         else
             try
                 eval([cmdSel0,';']);
@@ -66,9 +70,10 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                 ftsTb(ftsCnt,:) = num2cell(nan(1,nEvt));
             end
             ftsName1 = ftsName0;
+            ftsName{ftsCnt} = ftsName1;
+            ftsCnt = ftsCnt + 1;
         end
-        ftsName{ftsCnt} = ftsName1;
-        ftsCnt = ftsCnt + 1;
+        
     end
     valid = valid(1:ftsCnt-1);
     ftsTb = ftsTb(valid,:); ftsName = ftsName(valid);

@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**08/24/2024:** 
+
+Fix one bug about outputting propagation features.
+
 **08/16/2024:** 
 
 Reuse some landmark features used in AQuA for 2D time-lapse imaging data.
