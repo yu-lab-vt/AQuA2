@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**09/18/2024:** 
+
+Modify `aqua_cmd_batch.m` to repair one bug about outputting feature table.
+
 **08/24/2024:** 
 
 Fix one bug about outputting propagation features.

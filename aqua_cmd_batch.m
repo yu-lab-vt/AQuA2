@@ -368,19 +368,21 @@ for xxx = 1:numel(files)
         fname = [name,'_AQuA2'];
 
         ftTb1 = fea.getFeatureTable00(fts1,lmkLst,[]);
-        ftTb2 = fea.getFeatureTable00(fts2,lmkLst,[]);
-        ftTbGlo1 = fea.getFeatureTable00(ftsGlo1,lmkLst,[]);
-        ftTbGlo2 = fea.getFeatureTable00(ftsGlo2,lmkLst,[]);
-
         writetable(ftTb1,[fpath,filesep,fname,'_Ch1.csv'],'WriteVariableNames',0,'WriteRowNames',1);
         if(opts.detectGlo)
+            ftTbGlo1 = fea.getFeatureTable00(ftsGlo1,lmkLst,[]);
             writetable(ftTbGlo1,[fpath,filesep,fname,'_Glo_Ch1.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
         end
         if(~opts.singleChannel)
+            ftTb2 = fea.getFeatureTable00(fts2,lmkLst,[]);
             writetable(ftTb2,[fpath,filesep,fname,'_Ch2.csv'],'WriteVariableNames',0,'WriteRowNames',1);
             if(opts.detectGlo)
+                ftTbGlo2 = fea.getFeatureTable00(ftsGlo2,lmkLst,[]);
                 writetable(ftTbGlo2,[fpath,filesep,fname,'_Glo_Ch2.xlsx'],'WriteVariableNames',0,'WriteRowNames',1);
             end
+        else
+            ftTb2 = [];
+            ftTbGlo2 = [];
         end
     
         %% curves
