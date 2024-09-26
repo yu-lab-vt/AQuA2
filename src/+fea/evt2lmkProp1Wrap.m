@@ -1,4 +1,4 @@
-function [rr,res1] = evt2lmkProp1Wrap(dRecon,evts,lmkMsk,muPerPix,minThr)
+function [rr,res1] = evt2lmkProp1Wrap(dRecon,evts,lmkLst,muPerPix,minThr)
 % evt2lmkProp1Wrap extract propagation direciton related to landmarks
 % call evt2lmkProp1 on each data patch
 
@@ -11,11 +11,11 @@ thrRg = minThr:0.1:0.9;
 
 % landmarks
 nEvts = numel(evts);
-nLmk = numel(lmkMsk);
-lmkLst = cell(nLmk,1);
-for ii=1:nLmk
-    lmkLst{ii} = find(lmkMsk{ii}>0);
-end
+nLmk = numel(lmkLst);
+% lmkLst = cell(nLmk,1);
+% for ii=1:nLmk
+%     lmkLst{ii} = find(lmkMsk{ii}>0);
+% end
 
 % extract blocks
 chgToward = zeros(nEvts,nLmk);
