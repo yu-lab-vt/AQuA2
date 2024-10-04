@@ -123,6 +123,9 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**10/04/2024:** 
+Repair one bug about the feature output of global detections in batch script.
+
 **09/26/2024:** 
 Repair one bug about landmark features.
 

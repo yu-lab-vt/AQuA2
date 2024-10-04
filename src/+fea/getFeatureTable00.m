@@ -3,17 +3,15 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
         tb = getappdata(f,'userFeatures');
     else
         tb = readtable('userFeatures.csv','Delimiter',',');
-        if isfield(fts.basic,'peri')
+        if (~isempty(fts)) && (~isempty(fts.basic)) && (isfield(fts.basic,'peri'))
             tb = readtable('userFeatures2.csv','Delimiter',',');
-        else
-            tb = readtable('userFeatures.csv','Delimiter',',');
         end
     end
 
     nFt = numel(tb.Name);
     ftsName = cell(nFt,1);
 
-    if isempty(fts)
+    if isempty(fts) || isempty(fts.basic)
         featureTable = table(cell(nFt,0),'RowNames',tb.Name);
         return;
     end
