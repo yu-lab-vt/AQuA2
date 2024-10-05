@@ -2,7 +2,6 @@
 % 
 % Read Me:
 % Please set cfuOpts first.
-% The script will read the parameters from that excel to deal with data.
 
 % 'pIn' is the folder containing AQuA2 saved files from `aqua_cmd_batch`.
 
