@@ -262,12 +262,12 @@ for xxx = 1:numel(files)
         % propagation features
         fts1 = fea.getFeaturesPropTop(datR1, evt1, fts1, opts);
         if ~isempty(gloEvt1)
-            ftsGlo1 = fea.getFeaturesPropTop(datRGlo1, gloEvt1, ftsGlo1, opts);
+            ftsGlo1 = fea.getFeaturesPropTop(gloDatR1, gloEvt1, ftsGlo1, opts);
         end
         if(~opts.singleChannel)
             fts2 = fea.getFeaturesPropTop(datR2, evt2, fts2, opts);
             if ~isempty(gloEvt2)
-                ftsGlo2 = fea.getFeaturesPropTop(datRGlo2, gloEvt2, ftsGlo2, opts);
+                ftsGlo2 = fea.getFeaturesPropTop(gloDatR2, gloEvt2, ftsGlo2, opts);
             end
         end
     end
@@ -280,12 +280,12 @@ for xxx = 1:numel(files)
 
         fts1 = fea.getNetworkFeatures(datR1,evt1,fts1, btSt, bd, opts, 1);
         if ~isempty(gloEvt1)
-            ftsGlo1 = fea.getNetworkFeatures(datRGlo1,gloEvt1,ftsGlo1, btSt, bd, opts, 1);
+            ftsGlo1 = fea.getNetworkFeatures(gloDatR1,gloEvt1,ftsGlo1, btSt, bd, opts, 1);
         end
         if(~opts.singleChannel)
             fts2 = fea.getNetworkFeatures(datR2,evt2,fts2, btSt, bd, opts, 1);
             if ~isempty(gloEvt2)
-                ftsGlo2 = fea.getNetworkFeatures(datRGlo2,gloEvt2,ftsGlo2, btSt, bd, opts, 1);
+                ftsGlo2 = fea.getNetworkFeatures(gloDatR2,gloEvt2,ftsGlo2, btSt, bd, opts, 1);
             end
         end
     end
