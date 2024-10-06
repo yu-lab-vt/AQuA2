@@ -36,6 +36,8 @@ for xxx = 1:numel(files)
     %% load result
     load([pIn, f1]);
     
+    datPro = rescale(mean(single(res.datOrg1), 4));
+
     %% cfuDetect
     [cfuInfo1, cfuInfo2] = cfu.CFUdetectScript(res,cfuOpts);
 
@@ -58,6 +60,6 @@ for xxx = 1:numel(files)
         cfures.cfuInfo2 = cfuInfo2;
         cfures.cfuRelation = cfuRelation;
         cfures.cfuGroupInfo = cfuGroupInfo;
-        save([pOut,f1(1:end-4),'_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts');
+        save([pOut,f1(1:end-4),'_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts','datPro');
     end
 end
