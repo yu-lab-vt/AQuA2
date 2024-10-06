@@ -6,7 +6,7 @@ function addCon_wkflMsk(f, pWkflMsk)
     pSave = uipanel( bWkfl);
 
     % load masks ---
-    bLoad = uigridlayout(pMsk,'ColumnWidth',{'1x'},'RowHeight',{100,'1x',20,20,20},'Padding',[0,5,0,0],'RowSpacing',5,'ColumnSpacing',5);
+    bLoad = uigridlayout(pMsk,'ColumnWidth',{'1x'},'RowHeight',{100,'1x',20,20,20,20},'Padding',[0,5,0,0],'RowSpacing',5,'ColumnSpacing',5);
     gLoad = uigridlayout(bLoad,'ColumnWidth',{'1x',55,55,50,40},'RowHeight',{20,20,20,20},'Padding',[0,0,0,0],'RowSpacing',5,'ColumnSpacing',5);
     p = uilabel(gLoad,'Text','Load masks','BackgroundColor',[0 0.3 0.6],'FontColor','white');
     p.Layout.Column = [1,5];
@@ -34,6 +34,7 @@ function addCon_wkflMsk(f, pWkflMsk)
     t.CellSelectionCallback = {@ui.msk.mskLstViewer, f, 'select'};
 
     uibutton(bLoad, 'push','Text', 'Remove', 'ButtonPushedFcn', {@ui.msk.mskLstViewer, f, 'remove'});
+    uibutton(bLoad, 'push','Text', 'Apply global mask [2D][8/16/32bit 1-Frame .tif]', 'ButtonPushedFcn', {@ui.msk.readSingleFrameMsk, f, 'file', 'region'});
     uilabel(bLoad,'Text','');
     
     % Manually Select
