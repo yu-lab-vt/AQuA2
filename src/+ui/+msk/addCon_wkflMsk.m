@@ -51,9 +51,9 @@ function addCon_wkflMsk(f, pWkflMsk)
     uilabel(gSave, 'Text', ' Role of region markers');
     uidropdown(gSave, 'Items', {'Segment region', 'Remove region'}, 'Tag', 'saveMarkerOp');
     uilabel(gSave, 'Text', ' Combine region masks');
-    uidropdown(gSave, 'Items', {'OR', 'AND', 'SUB'}, 'Tag', 'saveMskRegOp');
+    uidropdown(gSave, 'Items', {'OR', 'AND', 'XOR'}, 'Tag', 'saveMskRegOp');
     uilabel(gSave, 'Text', ' Combine landmark masks');
-    uidropdown(gSave, 'Items', {'OR', 'AND', 'SUB'}, 'Tag', 'saveMskLmkOp');
+    uidropdown(gSave, 'Items', {'OR', 'AND', 'XOR'}, 'Tag', 'saveMskLmkOp');
 
     bSaveBtn = uigridlayout(bSave,'ColumnWidth',{'1x','1x'},'RowHeight',{'1x'},'Padding',[0,0,0,0],'RowSpacing',5,'ColumnSpacing',20);
     uibutton(bSaveBtn, 'Text', 'Apply & back', 'ButtonPushedFcn', {@ui.msk.saveMsk, f, 0});

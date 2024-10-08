@@ -43,14 +43,15 @@ function saveMsk(~,~,f,op)
             minRegSz = min(minRegSz,rr0.minSz);
             if isempty(regMskAll)
                 regMskAll = double(rr0.mask>0);
-            end
-            switch opReg
-                case 'OR'
-                    regMskAll = regMskAll+double(rr0.mask>0);
-                case 'AND'
-                    regMskAll = regMskAll.*double(rr0.mask>0);
-                case 'SUB'
-                    regMskAll(rr0.mask>0) = 0; %#ok<AGROW>
+            else
+                switch opReg
+                    case 'OR'
+                        regMskAll = regMskAll+double(rr0.mask>0);
+                    case 'AND'
+                        regMskAll = regMskAll.*double(rr0.mask>0);
+                    case 'XOR'
+                        regMskAll = xor(regMskAll, rr0.mask>0);
+                end
             end
         end
         if strcmp(rr0.type,'landmark')
@@ -58,14 +59,15 @@ function saveMsk(~,~,f,op)
             if isempty(lmkMskAll)
                 lmkMskAll = double(rr0.mask);
                 continue
-            end
-            switch opLmk
-                case 'OR'
-                    lmkMskAll = lmkMskAll+double(rr0.mask>0);               
-                case 'AND'
-                    lmkMskAll = lmkMskAll.*double(rr0.mask>0);
-                case 'SUB'
-                    lmkMskAll(rr0.mask>0) = 0; %#ok<AGROW>
+            else
+                switch opLmk
+                    case 'OR'
+                        lmkMskAll = lmkMskAll+double(rr0.mask>0);               
+                    case 'AND'
+                        lmkMskAll = lmkMskAll.*double(rr0.mask>0);
+                    case 'XOR'
+                        lmkMskAll = xor(lmkMskAll, rr0.mask>0);
+                end
             end
         end
         if strcmp(rr0.type,'regionMarker')
