@@ -125,7 +125,7 @@ for xxx = 1:numel(files)
     if(opts.needTemp)
          [seLst1,subEvtLst1,seLabel1,majorInfo1,opts,sdLst1,~,~] = se.seDetection(dF1,datOrg1,arLst1,opts,[]);
          if(~opts.singleChannel)
-             [seLst2,subEvtLst2,seLabel2,majorInfo2,opts,sdLst2,~,~] = se.seDetection(dF2,dFOrg2,arLst2,opts,[]);
+             [seLst2,subEvtLst2,seLabel2,majorInfo2,opts,sdLst2,~,~] = se.seDetection(dF2,datOrg2,arLst2,opts,[]);
          else
             seLst2 = [];
             subEvtLst2 = [];
@@ -244,7 +244,7 @@ for xxx = 1:numel(files)
         opts.minValueDat = opts.minValueDat2;
         opts.tempVarOrg = opts.tempVarOrg2;
         opts.correctPars = opts.correctPars2;
-        [fts2, dffMat2, dMat2,dffAlignedMat2] = fea.getFeaturesTop(datOrg2, evt2, opts, gg);
+        [fts2, dffMat2, dMat2,dffAlignedMat2] = fea.getFeaturesTop(datOrg2, evt2, opts, []);
         fts2.channel = 2;
         if ~isempty(gloEvt2)
             [ftsGlo2, dffMatGlo2, dMatGlo2,dffAlignedMatGlo2] = fea.getFeaturesTop(datOrg2, gloEvt2, opts, []);
@@ -398,7 +398,7 @@ for xxx = 1:numel(files)
         end
     
         %% rising maps
-        fea.outputRisingMap(riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst1), opts, fpath, 'risingMaps');
+        fea.outputRisingMap(riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst2), opts, fpath, 'risingMaps');
         if(opts.detectGlo)
             fea.outputRisingMap(gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,'risingMaps_Glo');
         end
