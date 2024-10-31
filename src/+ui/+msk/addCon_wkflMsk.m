@@ -34,7 +34,7 @@ function addCon_wkflMsk(f, pWkflMsk)
     t.CellSelectionCallback = {@ui.msk.mskLstViewer, f, 'select'};
 
     uibutton(bLoad, 'push','Text', 'Remove', 'ButtonPushedFcn', {@ui.msk.mskLstViewer, f, 'remove'});
-    uibutton(bLoad, 'push','Text', 'Apply global mask [2D][8/16/32bit 1-Frame .tif]', 'ButtonPushedFcn', {@ui.msk.readSingleFrameMsk, f, 'file', 'region'});
+    uibutton(bLoad, 'push','Text', 'Apply global mask [2D][8/16/32bit 1-Frame .tif]', 'ButtonPushedFcn', {@ui.msk.readSingleFrameMsk, f, 'region'});
     uilabel(bLoad,'Text','');
     
     % Manually Select
