@@ -28,8 +28,8 @@ function saveOpt(~,~,f)
     opts.sigThr = str2double(fh.sigThr.Value);
     opts.maxDelay = str2double(fh.maxDelay.Value);
     opts.seedSzRatio = str2double(fh.seedSzRatio.Value);
-    opts.needRefine = fh.needRefine.Value;
-    opts.needGrow = fh.needGrow.Value;
+%     opts.needRefine = fh.needRefine.Value;
+%     opts.needGrow = fh.needGrow.Value;
     
     opts.needSpa = fh.needSpa.Value;
     opts.sourceSzRatio = str2double(fh.sourceSzRatio.Value);

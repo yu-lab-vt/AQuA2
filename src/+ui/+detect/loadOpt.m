@@ -22,8 +22,8 @@ function loadOpt(~,~,f)
         opts.sigThr = optsLoad.sigThr;
         opts.maxDelay = optsLoad.maxDelay;
         opts.seedSzRatio = optsLoad.seedSzRatio;
-        opts.needRefine = optsLoad.needRefine;
-        opts.needGrow = optsLoad.needGrow;
+%         opts.needRefine = optsLoad.needRefine;
+%         opts.needGrow = optsLoad.needGrow;
 
         opts.needSpa = optsLoad.needSpa;
         opts.sourceSzRatio = optsLoad.sourceSzRatio;
@@ -78,8 +78,8 @@ function loadOpt(~,~,f)
         fh.seedSzRatio.Value = num2str(opts.seedSzRatio);
         fh.sigThr.Value = num2str(opts.sigThr);
         fh.maxDelay.Value = num2str(opts.maxDelay);
-        fh.needRefine.Value = opts.needRefine;
-        fh.needGrow.Value = opts.needGrow;
+%         fh.needRefine.Value = opts.needRefine;
+%         fh.needGrow.Value = opts.needGrow;
         
         fh.needSpa.Value = opts.needSpa;
         fh.sourceSzRatio.Value = num2str(opts.sourceSzRatio);
