@@ -12,8 +12,9 @@ function saveOpt(~,~,f)
     opts.fileType2 = optsOrg.fileType2;
     opts.sz = optsOrg.sz;
     
-    opts.registrateCorrect = find(strcmp(fh.bleachCorrect.Value,fh.bleachCorrect.Items));
-    opts.bleachCorrect = find(strcmp(fh.registrateCorrect.Value,fh.registrateCorrect.Items));
+    opts.registrateCorrect = find(strcmp(fh.registrateCorrect.Value,fh.registrateCorrect.Items));
+    opts.bleachCorrect = find(strcmp(fh.bleachCorrect.Value,fh.bleachCorrect.Items));
+    
     opts.medSmo = str2double(fh.medSmo.Value);
     opts.smoXY = str2double(fh.smoXY.Value);
     
