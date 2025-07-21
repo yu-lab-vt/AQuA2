@@ -44,17 +44,17 @@ if op==0
         % return
     end
     
-    try
+%     try
         pf1 = fh.fIn1.Value;
         pf2 = fh.fIn2.Value;
         [filepath1,name1,ext1] = fileparts(pf1);
         [filepath2,name2,ext2] = fileparts(pf2);
         f.Name = ['AQUA2: ',name1,' ',name2];
         [datOrg1,datOrg2,opts] = burst.prep1(filepath1,[name1,ext1],filepath2,[name2,ext2],[],opts,ff);
-    catch
-        msgbox('Fail to load file');
-        return
-    end
+%     catch
+%         msgbox('Fail to load file');
+%         return
+%     end
 
     maxPro1 = max(datOrg1,[],4);
     maxPro2 = max(datOrg2,[],4);

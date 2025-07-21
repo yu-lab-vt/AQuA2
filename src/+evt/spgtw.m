@@ -207,7 +207,7 @@ cx = zeros(nSp,T);
 for k = 1:nSp
     % assign rising part
     x0 = cxAlignTmpOrg(k,:);
-    alignedPeak = find(x0==1,1);
+    [~, alignedPeak] = max(x0);
     alignedPeak2 = minTs + alignedPeak - 1;
     cx(k,minTs:alignedPeak2) = x0(1:alignedPeak);
     % assign decay part

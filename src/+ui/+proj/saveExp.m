@@ -252,7 +252,7 @@ if fh.expFt.Value==1
     % rising maps
     riseLst1 = getappdata(f,'riseLst1');
     riseLst2 = getappdata(f,'riseLst2');
-    fea.outputRisingMap(riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath,'risingMaps');
+    fea.outputRisingMap(curSz, dsSclXY, riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath,'risingMaps');  % bug fixed 07/17/2025
     if(opts.detectGlo)
         gloRiseLst1 = getappdata(f,'gloRiseLst1');
         gloRiseLst2 = getappdata(f,'gloRiseLst2');

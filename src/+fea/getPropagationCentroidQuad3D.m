@@ -6,6 +6,18 @@ function ftsPg = getPropagationCentroidQuad3D(volr0,muPerPix,nEvt,ftsPg,opts)
 
 [H,W,L,T] = size(volr0);
 
+% 07/17/2025 added for robustness
+if all(volr0(:) == 0)
+    ftsPg.propGrow{nEvt} = zeros(T,6);
+    ftsPg.propGrowOverall(nEvt,:) = zeros(1,6);
+    ftsPg.propShrink{nEvt} = zeros(T,6);
+    ftsPg.propShrinkOverall(nEvt,:) = zeros(1,6);
+    ftsPg.areaChange{nEvt} = zeros(T,1);
+    ftsPg.areaChangeRate{nEvt} = zeros(T,1);
+    ftsPg.areaFrame{nEvt} = zeros(T,1);
+    return;
+end
+
 % make coordinate correct
 kDi = zeros(6,3);
 kDi(1,:) = [0,1,0];  kDi(2,:) = [0,-1,0];

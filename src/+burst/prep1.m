@@ -12,6 +12,39 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
     opts.fileName2 = name2;
     opts.fileType2 = ext2;
     
+    %% 07/08/2025 added: data waitbar ---------------------
+    % Same as the original, use channel 1 if there is only one data set
+    % Get file size
+    fileInfo1 = dir([p1,filesep,f1]);
+    fileSize1 = fileInfo1.bytes;
+    if ~isempty(f2)
+        fileInfo2 = dir([p2,filesep,f2]);
+        fileSize2 = fileInfo2.bytes;
+    else
+        fileSize2 = 0;
+    end
+    totalBytes = fileSize1 + fileSize2;
+    
+    bytesRead = 0;
+    lastUpdate = 0;
+    
+    function updateProgress(bytesAdded)
+        bytesRead = bytesRead + bytesAdded;
+        progress = bytesRead / totalBytes;
+        
+        % limit update freq (1% or 0.1GB)
+        if progress - lastUpdate > 0.01 || bytesRead - lastUpdate > 1e8
+            if exist('ff','var') && isvalid(ff)
+                gbRead = bytesRead / 1e9;
+                gbTotal = totalBytes / 1e9;
+                waitbar(progress, ff, sprintf('Reading data: %.1fGB/%.1fGB', gbRead, gbTotal));
+            end
+            lastUpdate = progress;
+        end
+    end
+    % -----------------------
+
+
     % read data
     fprintf('Reading data\n');
     if strcmp(ext1,'.mat')
@@ -30,9 +63,11 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
             BitDepth2 = [];
         end
     else
-        [dat1,BitDepth1] = io.readTiffSeq([p1,filesep,f1]);
+        % [dat1,BitDepth1] = io.readTiffSeq([p1,filesep,f1]);
+        [dat1,BitDepth1] = io.readTiffSeq([p1,filesep,f1], [], @updateProgress);
         if(~isempty(f2))
-            [dat2,BitDepth2] = io.readTiffSeq([p2,filesep,f2]);
+            % [dat2,BitDepth2] = io.readTiffSeq([p2,filesep,f2]);
+            [dat2,BitDepth2] = io.readTiffSeq([p2,filesep,f2], [], @updateProgress);
         else
             dat2 = [];
             BitDepth2 = [];

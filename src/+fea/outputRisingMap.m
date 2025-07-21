@@ -1,11 +1,11 @@
-function outputRisingMap(riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath, fR)
+function outputRisingMap(curSz, dsSclXY, riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath, fR)  % bug fixed 07/17/2025
     
-    outputRisingMap00(riseLst1, evtFavList1, opts, fpath, [fR,'_Ch1']);
+    outputRisingMap00(curSz, dsSclXY, riseLst1, evtFavList1, opts, fpath, [fR,'_Ch1']);
     if (~opts.singleChannel)
-        outputRisingMap00(riseLst2, evtFavList2, opts, fpath, [fR,'_Ch2']);
+        outputRisingMap00(curSz, dsSclXY, riseLst2, evtFavList2, opts, fpath, [fR,'_Ch2']);
     end
 end
-function outputRisingMap00(riseLst, selected, opts, fpath, fext)
+function outputRisingMap00(curSz, dsSclXY, riseLst, selected, opts, fpath, fext)
     if opts.sz(3)==1
         if ~isempty(selected) && ~isempty(riseLst)
             f00 = figure('Visible','off');
