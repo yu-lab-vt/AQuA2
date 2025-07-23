@@ -123,7 +123,7 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
-**23/07/2025**
+**07/23/2025**
 
 Add import waitbar. Enable large file(>4GB) tiff reading. Improve import process. Repair two bugs in spatial segementaion and feature extraction.
 
