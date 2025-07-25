@@ -1,5 +1,13 @@
 function outputRisingMap(curSz, dsSclXY, riseLst1, evtFavList1, riseLst2, evtFavList2, opts, fpath, fR)  % bug fixed 07/17/2025
     
+    % updated 07/25/2025: set default values for the first two params
+    if nargin < 2 || isempty(dsSclXY)
+        dsSclXY = 1; 
+    end
+    if nargin < 1 || isempty(curSz)
+        curSz = [opts.sz(1), opts.sz(2), opts.sz(3)];
+    end
+
     outputRisingMap00(curSz, dsSclXY, riseLst1, evtFavList1, opts, fpath, [fR,'_Ch1']);
     if (~opts.singleChannel)
         outputRisingMap00(curSz, dsSclXY, riseLst2, evtFavList2, opts, fpath, [fR,'_Ch2']);

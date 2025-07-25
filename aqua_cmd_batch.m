@@ -39,7 +39,7 @@ if(~strcmp(p_landmark,''))
 end
 
 mkdir(pOut);
-files = dir(fullfile(pIn,'*.tif'));
+files = dir(fullfile(pIn,'*.tif'));  % only accept 2D files for now
     
 for xxx = 1:numel(files)
     f1 = files(xxx).name; 
@@ -398,9 +398,9 @@ for xxx = 1:numel(files)
         end
     
         %% rising maps
-        fea.outputRisingMap(riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst2), opts, fpath, [fname, '_risingMaps']);
+        fea.outputRisingMap([],[],riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst2), opts, fpath, [fname, '_risingMaps']);
         if(opts.detectGlo)
-            fea.outputRisingMap(gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,[fname, '_risingMaps_Glo']);
+            fea.outputRisingMap([],[],gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,[fname, '_risingMaps_Glo']);
         end
 
     end
