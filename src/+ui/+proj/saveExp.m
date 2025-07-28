@@ -76,6 +76,8 @@ end
 fh = guidata(f);
 fout = [path0,filesep,file0];
 [fpath,fname,ext] = fileparts(fout);
+curSz = [];
+dsSclXY = [];
 if opts.sz(3)>1
     curSz = size(fh.ims.im1.Data);
     dsSclXY = fh.sldDsXY.Value;
