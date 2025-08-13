@@ -258,7 +258,7 @@ if fh.expFt.Value==1
     if(opts.detectGlo)
         gloRiseLst1 = getappdata(f,'gloRiseLst1');
         gloRiseLst2 = getappdata(f,'gloRiseLst2');
-        fea.outputRisingMap(gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath,'risingMaps_Glo');
+        fea.outputRisingMap(curSz, dsSclXY, gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath,'risingMaps_Glo');
     end
 
     % landmark map
