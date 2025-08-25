@@ -4,17 +4,19 @@
 % Please set 'AQuA/cfg/parameters_for_batch' first.
 % The script will read the parameters from that excel to deal with data.
 % How many files you have, how many parameter settings should be in that excel.
+% Suggest sort the files in order to set parameters for each.
 
-% 'p0' is the folder containing tifs you want to deal with.
-% Suggest sort the files in order, so that you can set the parameters 
+
+% Please put all the input files under directory 'pIn'.
+% .tif/.tiff format for 2D+t files, .mat format for 3D+t files.
 
 
 close all;
 clc;
 clearvars
 startup;  % initialize
-pIn = 'F:\Test_data\Check\'; %% input tif folder
-pOut = 'F:\Test_data\Check\'; %% the folder for output results
+pIn = 'D:\AQuA2-data\'; %% input file folder
+pOut = 'D:\AQuA2-data\result\'; %% the folder for output results. Note that it ends with \.
 
 batchSet.propMetric = true;    % whether extract propagation-related features
 batchSet.networkFeatures = true; % whether extract network features
@@ -31,7 +33,6 @@ bd('None') = [];
 if(~strcmp(p_cell,''))
     cell_region = load(p_cell);
     bd('cell') = cell_region.bd0;
-    
 end
 if(~strcmp(p_landmark,''))
     landmark = load(p_landmark);
@@ -39,13 +40,18 @@ if(~strcmp(p_landmark,''))
 end
 
 mkdir(pOut);
-files = dir(fullfile(pIn,'*.tif'));  % only accept 2D files for now
+
+% 2025/08/25 updated: multi-mode input
+files_tif = dir(fullfile(pIn, '*.tif'));
+files_tiff = dir(fullfile(pIn, '*.tiff'));    % use .tif/.tiff for 2D+time data
+files_mat = dir(fullfile(pIn, '*.mat'));      % use .mat for 3D+time data
+files = [files_tif; files_tiff; files_mat];
     
 for xxx = 1:numel(files)
     f1 = files(xxx).name; 
     %% load setting (you can also manually modify setting here)
     opts = util.parseParam_for_batch(xxx);
-    opts.singleChannel = true;
+    opts.singleChannel = true;      % batch only leverages single channel for simplicity
     opts.whetherExtend = true;
 
 %     opts.detectGlo = true;
@@ -289,8 +295,8 @@ for xxx = 1:numel(files)
             end
         end
     end
-
-    %% save output
+    
+    %% gather results
     disp('Gathering result...');
     % export 
     res.maxVal = opts.maxValueDat1;
@@ -343,11 +349,17 @@ for xxx = 1:numel(files)
     res.stg.post = 1;
     res.stg.detect = 1;
     res.bd = bd;
-
+    
     %% save output
-    name = [f1(1:end-4)];
     disp('Saving result...');
-    save([pOut,name,'_AQuA2.mat'], 'res','-v7.3');   
+    name = erase(f1, {'.tiff','.tif','.mat'});
+    if (numel(files)>1)
+        pOut_each = [pOut, name, '_results\'];
+        mkdir(pOut_each);
+    else
+        pOut_each = pOut;
+    end
+    save([pOut_each,name,'_AQuA2.mat'], 'res','-v7.3');   
 
     %% FeatureTable
     if batchSet.outputFeatureTable
@@ -364,7 +376,7 @@ for xxx = 1:numel(files)
         else
             lmkLst = [];
         end
-        fpath = pOut(1:end-1);
+        fpath = pOut_each(1:end-1);
         fname = [name,'_AQuA2'];
 
         ftTb1 = fea.getFeatureTable00(fts1,lmkLst,[]);
@@ -411,19 +423,19 @@ for xxx = 1:numel(files)
             ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
             if ~opts.singleChannel
                 ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
-                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_1.tif'],ov1,0);
-                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_2.tif'],ov2,0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_1.tif'],ov1,0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_2.tif'],ov2,0);
             else
-                io.writeTiffSeq([pOut,name,'_AQuA2_Movie.tif'],ov1,0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Movie.tif'],ov1,0);
             end
         else
             ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
-            for t = 1:opts.sz(4)
-                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_1_Frame ',num2str(tt),'.tif'],ov1(:,:,:,:,t),0);
+            for tt = 1:opts.sz(4)
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch1_Frame',num2str(tt),'.tif'],ov1(:,:,:,:,tt),0);
             end
             if ~opts.singleChannel
                 ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
-                io.writeTiffSeq([pOut,name,'_AQuA2_Channel_2_Frame ',num2str(tt),'.tif'],ov2(:,:,:,:,t),0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch2_Frame',num2str(tt),'.tif'],ov2(:,:,:,:,tt),0);
             end
         end
     end
