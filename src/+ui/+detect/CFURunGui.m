@@ -5,7 +5,6 @@ function CFURunGui(~,~,fCFU,f)
     evtLst1 = getappdata(f, 'evt1');
     cfu_pre1 = getappdata(fCFU,'cfu_pre1');
     fh.favCFUs = [];
-    cfu.updtCFUTable(fCFU);
     
     ff = waitbar(0,'Calculating events distance');
 
@@ -236,6 +235,7 @@ function CFURunGui(~,~,fCFU,f)
         rmappdata(fCFU,'groupInfo');
     end
     fh.pTool1.Visible = 'on';
+    cfu.updtCFUTable(fCFU);     % 08/27/2025 updated: clear table after rerun
     cfu.updtGrpTable(fCFU,f);
     ui.updtCFUint([],[],fCFU,true);
     

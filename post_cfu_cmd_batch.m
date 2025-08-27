@@ -1,7 +1,7 @@
 %% setup
 % 
 % Read Me:
-% Please set cfuOpts first.
+% Please set cfuOpts in the following lines first.
 
 % 'pIn' is the folder containing AQuA2 saved files from `aqua_cmd_batch`.
 

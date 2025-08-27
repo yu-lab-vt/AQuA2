@@ -24,7 +24,7 @@ pSys = uipanel('Parent',bWkfl,'Tag','pSys');
 pSelect = uipanel('Parent',bWkfl,'Tag','pSelect');
 
 %% detection
-bDeOut = uigridlayout(pDetect,'ColumnWidth',{'1x'},'RowHeight',{20,55,55,20,20},'Padding',[0,15,0,0],'RowSpacing',5);
+bDeOut = uigridlayout(pDetect,'ColumnWidth',{'1x'},'RowHeight',{20,55,55,20,25,25},'Padding',[0,15,0,0],'RowSpacing',5);
 uilabel(bDeOut,'Text','CFU detections','BackgroundColor',[0 0.3 0.6],'FontColor','white');
 deOutTab = uigridlayout(bDeOut,'Tag','deOutTab','RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20},'Padding',[10,0,10,10]);
 uieditfield(deOutTab,'Value','0.5','Tag','alpha');
@@ -44,8 +44,19 @@ end
 
 p = uicheckbox(bDeOut,'Text','Use spatial weighted map (yes)| spatial footprint (no)','Value',1,'Tag','spatialOption');
 
-deOutCon = uigridlayout(bDeOut,'RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{'1x'},'RowHeight',{20},'Padding',[100,0,100,0]);
-uibutton(deOutCon,'push','Text','Run','Tag','deOutRun','ButtonPushedFcn',{@ui.detect.CFURunGui,fCFU,fOut});
+deOutActions = uigridlayout(bDeOut,'RowSpacing',0,'ColumnSpacing',5,'ColumnWidth',{'fit','fit','fit'},'RowHeight',{22},'Padding',[70,0,80,0]);
+
+btnLoad = uibutton(deOutActions,'push','Text','Load CFU Results','Tag','loadCFUButton','ButtonPushedFcn',{@cfu.loadCFUData,fCFU,fOut});
+btnLoad.Layout.Row = 1;
+btnLoad.Layout.Column = 3;
+
+lblOr = uilabel(deOutActions,'Text','or','HorizontalAlignment','center','FontAngle','italic');
+lblOr.Layout.Row = 1;
+lblOr.Layout.Column = 2;
+
+btnRun = uibutton(deOutActions,'push','Text','Run','Tag','deOutRun','ButtonPushedFcn',{@ui.detect.CFURunGui,fCFU,fOut});
+btnRun.Layout.Row = 1;
+btnRun.Layout.Column = 1;
 
 %% Operations
 bOp = uigridlayout(pOperation,'ColumnWidth',{'1x'},'RowHeight',{20,45,20,100},'Padding',[0,15,0,0],'RowSpacing',5);
