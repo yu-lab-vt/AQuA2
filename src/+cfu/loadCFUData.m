@@ -161,6 +161,58 @@ function loadCFUData(~, ~, fCFU, fOut)
             cfu.updtGrpTable(fCFU, fOut);
         end
 
+        % Restore Parameters from cfuOpts (Added Fix 2025/12/02)
+        if isfield(loadedData, 'cfuOpts')
+            optsLoaded = loadedData.cfuOpts;
+
+            % 1. Detection Parameters
+            if isfield(optsLoaded, 'cfuDetect')
+                det = optsLoaded.cfuDetect;
+                % Channel 1
+                if isfield(det, 'overlapThr1')
+                    fh.alpha.Value = num2str(det.overlapThr1);
+                end
+                if isfield(det, 'minNumEvt1')
+                    fh.minNumEvt.Value = num2str(det.minNumEvt1);
+                end
+                
+                % Channel 2
+                if isfield(fh, 'alpha2') && isfield(det, 'overlapThr2')
+                     fh.alpha2.Value = num2str(det.overlapThr2);
+                end
+                if isfield(fh, 'minNumEvt2') && isfield(det, 'minNumEvt2')
+                     fh.minNumEvt2.Value = num2str(det.minNumEvt2);
+                end
+            end
+
+            % 2. Analysis Parameters
+            if isfield(optsLoaded, 'cfuAnalysis')
+                ana = optsLoaded.cfuAnalysis;
+                if isfield(ana, 'maxDist')
+                    currentMax = fh.sldWinSz.Limits(2);
+                    if ana.maxDist > currentMax
+                        fh.sldWinSz.Limits(2) = ana.maxDist * 1.5;
+                    end
+                    fh.sldWinSz.Value = ana.maxDist;
+                    fh.winSz.Value = num2str(ana.maxDist);
+                end
+                if isfield(ana, 'shift')
+                    fh.shift.Value = num2str(ana.shift);
+                end
+            end
+
+            % 3. Group Parameters
+            if isfield(optsLoaded, 'cfuGroup')
+                grp = optsLoaded.cfuGroup;
+                if isfield(grp, 'pValueThr')
+                    fh.pThr.Value = num2str(grp.pValueThr);
+                end
+                if isfield(grp, 'cfuNumThr')
+                    fh.minNumCFU.Value = num2str(grp.cfuNumThr);
+                end
+            end
+        end
+
         % Persist GUI data
         guidata(fCFU, fh);
         cfu.updtCFUTable(fCFU);

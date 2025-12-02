@@ -1,4 +1,6 @@
-function aqua_loadCFU()
+function loadCFU_old()
+% GUI to load old AQUA2-CFU result files, abandoned version
+% Require GUI Layout Toolbox
 
     f = figure('Name','AQUA2-CFU','MenuBar','none','Toolbar','none',...
             'NumberTitle','off','Visible','off');
