@@ -1,41 +1,44 @@
 function saveOpt(~,~,f)
-    
+% Updated 2025/12/2: Save as the format of parameters.csv template
+
+    % Retrieve original opts as base
     optsOrg = getappdata(f,'opts');
-    % should update new changing
     fh = guidata(f);
-    opts = [];
-    opts.filePath1 = optsOrg.filePath1;
-    opts.fileName1 = optsOrg.fileName1;
-    opts.fileType1 = optsOrg.fileType1;
-    opts.filePath2 = optsOrg.filePath2;
-    opts.fileName2 = optsOrg.fileName2;
-    opts.fileType2 = optsOrg.fileType2;
-    opts.sz = optsOrg.sz;
     
+    % --- 1. Collect current parameters into temp opts struct ---
+    opts = optsOrg; % Inherit background parameters
+    
+    % Dropdowns
     opts.registrateCorrect = find(strcmp(fh.registrateCorrect.Value,fh.registrateCorrect.Items));
+    if isempty(opts.registrateCorrect), opts.registrateCorrect = 1; end
     opts.bleachCorrect = find(strcmp(fh.bleachCorrect.Value,fh.bleachCorrect.Items));
+    if isempty(opts.bleachCorrect), opts.bleachCorrect = 1; end
     
+    % Numeric Fields
     opts.medSmo = str2double(fh.medSmo.Value);
     opts.smoXY = str2double(fh.smoXY.Value);
-    
     opts.thrARScl = str2double(fh.thrArScl.Value);
     opts.minSize = str2double(fh.minSize.Value);
     opts.maxSize = str2double(fh.maxSize.Value);
     opts.minDur = str2double(fh.minDur.Value);
     opts.circularityThr = str2double(fh.circularityThr.Value);
-%     opts.spaMergeDist = str2double(fh.spaMergeDist.Value);
+    
+    % Handle spaMergeDist (inherit or set default)
+    if isfield(optsOrg, 'spaMergeDist')
+        opts.spaMergeDist = optsOrg.spaMergeDist;
+    else
+        opts.spaMergeDist = 0; 
+    end
     
     opts.needTemp = fh.needTemp.Value;
     opts.sigThr = str2double(fh.sigThr.Value);
     opts.maxDelay = str2double(fh.maxDelay.Value);
     opts.seedSzRatio = str2double(fh.seedSzRatio.Value);
-%     opts.needRefine = fh.needRefine.Value;
-%     opts.needGrow = fh.needGrow.Value;
     
     opts.needSpa = fh.needSpa.Value;
     opts.sourceSzRatio = str2double(fh.sourceSzRatio.Value);
     opts.sourceSensitivity = str2double(fh.sourceSensitivity.Value);
-    opts.whetherExtend = fh.whetherExtend.Value;
+    try opts.whetherExtend = fh.whetherExtend.Value; catch; end
 
     opts.detectGlo = fh.detectGlo.Value;
     opts.gloDur = str2double(fh.gloDur.Value);
@@ -44,44 +47,111 @@ function saveOpt(~,~,f)
     opts.propMetric = fh.propMetric.Value;
     opts.networkFeatures = fh.networkFeatures.Value;
     
-    opts.gtwSmo = optsOrg.gtwSmo;
-    opts.ratio = optsOrg.ratio;
-    opts.regMaskGap = optsOrg.regMaskGap;
-    opts.regMaskGap = optsOrg.regMaskGap;
-    opts.cut = optsOrg.cut;
-    opts.movAvgWin = optsOrg.movAvgWin;
-    opts.minShow1 = optsOrg.minShow1;
-    opts.correctTrend = optsOrg.correctTrend;
-    opts.propthrmin = optsOrg.propthrmin;
-    opts.propthrmax = optsOrg.propthrmax;
-    opts.propthrstep = optsOrg.propthrstep;
-    opts.compress = optsOrg.compress;
-    opts.gapExt = optsOrg.gapExt;
-    opts.frameRate = optsOrg.frameRate;
-    opts.spatialRes = optsOrg.spatialRes;
-    opts.northx = optsOrg.northx;
-    opts.northy = optsOrg.northy;
-    opts.TPatch = optsOrg.TPatch;
-    opts.maxSpaScale = optsOrg.maxSpaScale;
-    opts.minSpaScale = optsOrg.minSpaScale;    
+    % --- 2. Read template and build table ---
+    try
+        % Load configuration template for structure
+        cfgPath = './cfg/parameters.csv';
+        if ~exist(cfgPath, 'file')
+            error('Configuration template ./cfg/parameters.csv not found.');
+        end
+        
+        T_template = readtable(cfgPath, 'PreserveVariableNames', true);
+        
+        % Prepare new data column
+        nRows = height(T_template);
+        ValueCol = cell(nRows, 1);
+        
+        % Populate values from opts into template
+        for i = 1:nRows
+            varName = T_template.Variable{i};
+            
+            % Check for empty or missing variable names
+            if isempty(varName) || any(ismissing(varName))
+                ValueCol{i} = '';
+                continue;
+            end
+            
+            % Convert string to char for struct field usage
+            if isstring(varName)
+                varName = char(varName);
+            end
+            
+            % Fill value if it exists in opts
+            if isfield(opts, varName)
+                val = opts.(varName);
+                if isnumeric(val)
+                    ValueCol{i} = num2str(val);
+                elseif islogical(val)
+                    ValueCol{i} = num2str(double(val));
+                else
+                    ValueCol{i} = char(string(val));
+                end
+            else
+                ValueCol{i} = ''; 
+            end
+        end
+        
+        % Build output table
+        T_out = table();
+        
+        % Safely retrieve columns
+        if any(strcmp('Name', T_template.Properties.VariableNames))
+            T_out.Name = T_template.Name;
+        else
+            T_out.Name = repmat({''}, nRows, 1);
+        end
+        
+        T_out.Variable = T_template.Variable;
+        
+        if any(strcmp('Type', T_template.Properties.VariableNames))
+            T_out.Type = T_template.Type;
+        else
+             T_out.Type = repmat({''}, nRows, 1);
+        end
+        
+        T_out.Value = ValueCol;
+        
+        if any(strcmp('Notes', T_template.Properties.VariableNames))
+            T_out.Notes = T_template.Notes;
+        else
+             T_out.Notes = repmat({''}, nRows, 1);
+        end
+        
+    catch ME
+        errordlg(['Error preparing parameter table: ' ME.message]);
+        return;
+    end
     
-    % SP, 18.07.16
+    % --- 3. Save file ---
     definput = {'_Opt.csv'};
     selname = inputdlg('Type desired suffix for Parameter file name:',...
         'Parameter file',[1 75],definput);
     
-    selname = char(selname);
     if isempty(selname)
-        selname = '_Opt.csv';
+        return; 
     end
-    file0 = [opts.fileName1,selname];
-    clear definput selname
+    selname = char(selname);
     
-    %file0 = [opts.fileName,'_AQuA']; SP, 18.07.16
-    selpath = uigetdir(opts.filePath1,'Choose output folder');
-    path0 = [selpath,filesep];
-    if ~isnumeric(selpath)
-        ui.proj.struct2csv(opts,[path0,file0]);
+    if isempty(optsOrg.fileName1)
+        baseName = 'Experiment';
+    else
+        [~, baseName, ~] = fileparts(optsOrg.fileName1);
     end
     
+    file0 = [baseName, selname];
+    if ~endsWith(file0, '.csv', 'IgnoreCase', true)
+        file0 = [file0, '.csv'];
+    end
+    
+    selpath = uigetdir(optsOrg.filePath1,'Choose output folder');
+    if isnumeric(selpath), return; end % Cancelled
+    
+    fullSavePath = fullfile(selpath, file0);
+    
+    try
+        writetable(T_out, fullSavePath);
+        disp(['Parameters saved to: ', fullSavePath]);
+    catch ME
+        errordlg(['Failed to save file: ', ME.message]);
+    end
 end
