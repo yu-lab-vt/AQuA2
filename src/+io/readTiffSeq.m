@@ -20,7 +20,7 @@ function [img, BitDepth] = readTiffSeq(fName, rescaleImg, progressCallback)
 %   img              - (H x W x nFrames, single) The loaded image stack.
 %   BitDepth         - (double) The bit depth of the image (e.g., 8, 16, 32).
 %
-% updated 07/18/2025
+% updated 2025/12/03 (Optimized init & sequential read)
 
 % --- 1. Argument validation ---
 if ~exist('rescaleImg', 'var') || isempty(rescaleImg)
@@ -30,52 +30,70 @@ if ~exist('progressCallback', 'var')
     progressCallback = [];
 end
 
-% --- 2. Initial file inspection with imfinfo ---
+% --- 2. Initial file inspection (Optimized) ---
+% Replaced imfinfo with low-level check + Tiff class for speed
+d = dir(fName);
+if isempty(d), error('File not found: %s', fName); end
+fileSize = d.bytes;
+
 try
-    info = imfinfo(fName);
+    t = Tiff(fName, 'r');
+    
+    % Read key parameters from first frame only
+    W = t.getTag('ImageWidth');
+    H = t.getTag('ImageLength');
+    BitDepth = t.getTag('BitsPerSample');
+    
+    try rowsPerStrip = t.getTag('RowsPerStrip'); catch, rowsPerStrip = H; end
+    isStriped = rowsPerStrip < H;
+    
+    % Check for compression and sample format
+    try comp = t.getTag('Compression'); catch, comp = 1; end
+    try sampleFmt = t.getTag('SampleFormat'); catch, sampleFmt = Tiff.SampleFormat.UInt; end
+    
+    isFloat = (BitDepth == 32 && sampleFmt == Tiff.SampleFormat.IEEEFP);
+    
+    % Get StripOffsets for Strategy B fallback
+    try firstOffset = t.getTag('StripOffsets'); catch, firstOffset = 0; end
+    
 catch ME
-    error('Fatal error: imfinfo could not read file "%s". The file may be corrupt or inaccessible. Error: %s', fName, ME.message);
+    if exist('t', 'var'), close(t); end
+    error('Fatal error: Tiff class could not read file "%s". Error: %s', fName, ME.message);
 end
 
-% Extract key parameters for decision making and for the fread fallback
-H = info(1).Height;
-W = info(1).Width;
-BitDepth = info(1).BitDepth;
-isStriped = info(1).RowsPerStrip < H;
-isMultiDirectory = numel(info) > 1;
-
 % --- 3. Decision Logic: Choose the reading strategy ---
-if isStriped || isMultiDirectory
-    % --- STRATEGY A: Use robust Tiff class for striped or standard multi-frame files ---
+% Only use Strategy B if strictly uncompressed, not striped, and very large
+useFread = (comp == 1) && (~isStriped) && (fileSize > 2^32);
+
+if ~useFread
+    % --- STRATEGY A: Use robust Tiff class (Optimized Sequential) ---
     fprintf('File appears striped or as a standard multi-directory TIFF.\n');
-    fprintf('Using robust Tiff class method...\n');
+    fprintf('Using robust Tiff class method (Optimized)...\n');
     
     try
-        t = Tiff(fName, 'r');
+        % Estimate frames from file size to avoid full traversal (O(1))
+        bytesPerFrame = W * H * (BitDepth / 8);
+        estFrames = floor(fileSize / bytesPerFrame);
+        if estFrames < 1, estFrames = 1; end
         
-        % Determine total frames by iterating through directories
-        nFrames = 1;
-        while ~t.lastDirectory()
-            t.nextDirectory();
-            nFrames = nFrames + 1;
-        end
-        t.setDirectory(1); % Reset to the beginning
-        
-        isFloat = false;
-        if BitDepth == 32 && t.getTag('SampleFormat') == Tiff.SampleFormat.IEEEFP
-            isFloat = true;
-        end
-        
-        fprintf('  - Dimensions: %d x %d, Frames: %d, Bit Depth: %d\n', W, H, nFrames, BitDepth);
+        fprintf('  - Dimensions: %d x %d, Est. Frames: %d, Bit Depth: %d\n', W, H, estFrames, BitDepth);
 
-        img = zeros(H, W, nFrames, 'single');
+        img = zeros(H, W, estFrames, 'single');
         maxVal = 2^BitDepth - 1;
         
         fprintf('Reading image stack... 0%%');
         last_percent_shown = 0;
         
-        for k = 1:nFrames
-            t.setDirectory(k);
+        % Ensure we are at start
+        if t.currentDirectory() ~= 1, t.setDirectory(1); end
+        
+        k = 0;
+        while true
+            k = k + 1;
+            
+            % Dynamic resize if estimation was too low
+            if k > size(img, 3), img(:, :, k+100) = 0; end
+            
             frame = t.read();
             if size(frame, 3) > 1, frame = mean(frame, 3); end
             
@@ -86,15 +104,26 @@ if isStriped || isMultiDirectory
             end
             
             if isa(progressCallback, 'function_handle')
-                progressCallback(H * W * (BitDepth / 8));
+                progressCallback(bytesPerFrame);
             end
 
-            percent_done = floor(k / nFrames * 100);
-            if percent_done > last_percent_shown && mod(percent_done, 10) == 0
+            percent_done = floor(k / estFrames * 100);
+            if percent_done >= last_percent_shown + 10
                 fprintf('...%d%%', percent_done);
                 last_percent_shown = percent_done;
             end
+            
+            % Efficiently move to next directory (O(1))
+            if t.lastDirectory()
+                break;
+            else
+                t.nextDirectory();
+            end
         end
+        
+        % Trim final array to actual size
+        if k < size(img, 3), img = img(:, :, 1:k); end
+        
         fprintf('...100%% Done.\n');
         t.close();
         
@@ -105,25 +134,33 @@ if isStriped || isMultiDirectory
     
 else
     % --- STRATEGY B: Fallback to fread for large, single-directory contiguous files ---
+    % Release Tiff object lock before using fread
+    t.close();
+    
     fprintf('File appears as a large, single-directory contiguous TIFF.\n');
     fprintf('Using high-performance fread fallback method...\n');
     
     try
-        % Reliably get file size for frame calculation
-        f_tmp = fopen(fName, 'r');
-        fseek(f_tmp, 0, 'eof');
-        fileSize = ftell(f_tmp);
-        fclose(f_tmp);
+        % Reliably determine Byte Order from file header (since imfinfo is gone)
+        fid_temp = fopen(fName, 'r');
+        header = fread(fid_temp, 2, 'uint8=>char')';
+        fclose(fid_temp);
         
-        bytesPerFrame = H * W * (BitDepth / 8);
-        nFrames = floor((fileSize - info(1).StripOffsets(1)) / bytesPerFrame);
+        if strcmp(header, 'II')
+            machineFormat = 'l'; % Little-endian
+        else
+            machineFormat = 'b'; % Big-endian
+        end
+
+        bytesPerFrame = W * H * (BitDepth / 8);
+        nFrames = floor((fileSize - firstOffset(1)) / bytesPerFrame);
         
         isFloat = false;
         switch BitDepth
             case 8, precision = 'uint8=>uint8';
             case 16, precision = 'uint16=>uint16';
             case 32
-                if isfield(info(1), 'SampleFormat') && strcmp(info(1).SampleFormat, 'IEEE floating point')
+                if exist('sampleFmt','var') && sampleFmt == Tiff.SampleFormat.IEEEFP
                     precision = 'single=>single'; isFloat = true;
                 else
                     precision = 'uint32=>uint32';
@@ -131,15 +168,13 @@ else
             otherwise, error('Unsupported bit depth: %d.', BitDepth);
         end
         
-        if strcmp(info(1).ByteOrder, 'little-endian'), machineFormat = 'l'; else machineFormat = 'b'; end
-        
         fprintf('  - Dimensions: %d x %d, Est. Frames: %d, Bit Depth: %d\n', W, H, nFrames, BitDepth);
         
         img = zeros(H, W, nFrames, 'single');
         maxVal = 2^BitDepth - 1;
         
         fID = fopen(fName, 'r', machineFormat);
-        start_points = info(1).StripOffsets(1) + (0:1:(nFrames-1)) * bytesPerFrame;
+        start_points = firstOffset(1) + (0:1:(nFrames-1)) * bytesPerFrame;
         
         fprintf('Reading image stack... 0%%');
         last_percent_shown = 0;
@@ -164,7 +199,7 @@ else
             
             if isa(progressCallback, 'function_handle'), progressCallback(bytesPerFrame); end
 
-            percent_done = floor(k / nFrames * 100);
+            percent_done = floor(k * 100.0 / nFrames);
             if percent_done > last_percent_shown && mod(percent_done, 10) == 0
                 fprintf('...%d%%', percent_done);
                 last_percent_shown = percent_done;
