@@ -83,13 +83,19 @@ if opts.sz(3)>1
     dsSclXY = fh.sldDsXY.Value;
 end
 
+tic
+
 if fh.expEvt.Value==1
-    waitbar(0.25,ff,'Saving res file...');
+    waitbar(0.25,ff,'Saving res file, may take a while...');
     if ~strcmp(fout(end-3:end),'.mat')
         fout = [fout,'.mat'];
     end
-    save(fout,'res','-v7.3');
+    % Use this line if space is stirctly limited, at the cost of time
+    % save(fout,'res','-v7.3');    
+    save(fout,'res','-v7.3','-nocompression');
 end
+
+toc
 
 % if fh.expEvt2.Value==1
 %     waitbar(0.25,ff,'Saving res file...');

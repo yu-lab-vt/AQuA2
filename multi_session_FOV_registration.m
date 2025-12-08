@@ -243,5 +243,5 @@ for fileID = 1:numel(files)
 
     name = [files(fileID).name(1:end-4)];
     disp('Saving result...');
-    save([pOut,'Align_',name,'.mat'], 'res','-v7.3');   
+    save([pOut,'Align_',name,'.mat'], 'res','-v7.3','-nocompression');   
 end

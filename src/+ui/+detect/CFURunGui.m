@@ -3,6 +3,7 @@ function CFURunGui(~,~,fCFU,f)
     fh = guidata(fCFU);
     opts = getappdata(f,'opts');
     evtLst1 = getappdata(f, 'evt1');
+    fts1 = getappdata(f, 'fts1'); % [Added] Get features for peak times
     cfu_pre1 = getappdata(fCFU,'cfu_pre1');
     fh.favCFUs = [];
     
@@ -68,6 +69,9 @@ function CFURunGui(~,~,fCFU,f)
     cfuMapVideo = reshape(cfuMapVideo,[],T);
     cfuTimeWindow1 = false(nCFU,T);
     cfuNonTimeWindow1 = false(nCFU,T);
+    
+    cfuInfo = cell(nCFU,9);
+    
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
         cfuTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
@@ -76,19 +80,21 @@ function CFURunGui(~,~,fCFU,f)
         evtInCFU = CFU_lst1{i};
         x0 = cfuCurves1(i,:);
         x0 = movmean(x0,2);
+        
+        tPeaks = zeros(numel(evtInCFU), 1); 
+        
         for j = 1:numel(evtInCFU)
             label = evtInCFU(j);
             [~,~,~,it] = ind2sub([H,W,L,T],evtLst1{label});
             t0 = min(it);
             t1 = max(it);
+            
+            tPeaks(j) = fts1.curve.dffMaxFrame(label); % Use peak frame
+            
             riseT = round(cfu.getRisingTime(x0,t0,t1,cfuTimeWindow1(i,:),thrVec));
             cfuOccurrence1(i,round(riseT)) = true;
         end
-    end
-    clear cfuMapVideo;
-    
-    cfuInfo = cell(nCFU,8);
-    for i = 1:nCFU
+        
         cfuInfo{i,1} = i;
         cfuInfo{i,2} = CFU_lst1{i};   % Slice
         cfuInfo{i,3} = cfuRegions1{i};
@@ -97,6 +103,7 @@ function CFURunGui(~,~,fCFU,f)
         cfuInfo{i,6} = cfuDFFCurves1(i,:); 
         cfuInfo{i,7} = cfuTimeWindow1(i,:); 
         cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
+        cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate); 
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
     
@@ -122,6 +129,7 @@ function CFURunGui(~,~,fCFU,f)
     
     %%
     if(~opts.singleChannel)
+        fts2 = getappdata(f, 'fts2'); 
         alpha = str2double(fh.alpha2.Value);
         minNumEvt = str2double(fh.minNumEvt2.Value);
         [cfuRegions2,CFU_lst2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);    
@@ -160,6 +168,9 @@ function CFURunGui(~,~,fCFU,f)
         cfuMapVideo = reshape(cfuMapVideo,[],T);
         cfuTimeWindow2 = false(nCFU,T);
         cfuNonTimeWindow2 = false(nCFU,T);
+        
+        cfuInfo = cell(nCFU,9); 
+        
         for i = 1:nCFU
             pix = find(cfuRegions2{i}>0.1);
             cfuTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
@@ -168,19 +179,21 @@ function CFURunGui(~,~,fCFU,f)
             evtInCFU = CFU_lst2{i};
             x0 = cfuCurves2(i,:);
             x0 = movmean(x0,2);
+            
+            tPeaks = zeros(numel(evtInCFU), 1); 
+            
             for j = 1:numel(evtInCFU)
                 label = evtInCFU(j);
                 [~,~,~,it] = ind2sub([H,W,L,T],evtLst2{label});
                 t0 = min(it);
                 t1 = max(it);
+                
+                tPeaks(j) = fts2.curve.dffMaxFrame(label); 
+                
                 riseT = round(cfu.getRisingTime(x0,t0,t1,cfuTimeWindow2(i,:),thrVec));
                 cfuOccurrence2(i,round(riseT)) = true;
             end
-        end
-        
-        nCFU = numel(cfuRegions2);
-        cfuInfo = cell(nCFU,8);
-        for i = 1:nCFU
+            
             cfuInfo{i,1} = i;
             cfuInfo{i,2} = CFU_lst2{i};   % Slice
             cfuInfo{i,3} = cfuRegions2{i};
@@ -189,6 +202,7 @@ function CFURunGui(~,~,fCFU,f)
             cfuInfo{i,6} = cfuDFFCurves2(i,:);
             cfuInfo{i,7} = cfuTimeWindow2(i,:);
             cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
+            cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
         
@@ -270,4 +284,42 @@ function dff = getdFF(x0,window,cut)
     sigma1 = max(1e-4,sqrt(mean((x0(2:end)-x0(1:end-1)).^2)/2));
     F0 = F0 - pre.obtainBias(window,cut)*sigma1;
     dff = (x0-F0)./(F0+1e-4);
+end
+
+% Helper function
+function stats = calcFreqStats(tPeaks, s_per_frame)
+    cnt = length(tPeaks);
+    dt_vals = [];
+    mainFreq = 0;
+    methodStr = 'N/A';
+    peakFreq80 = NaN;
+
+    if cnt >= 2
+        tPeaks = sort(tPeaks);
+        dt = diff(tPeaks) * s_per_frame;
+        dt = dt(dt > 0); 
+        dt_vals = dt;
+
+        if ~isempty(dt)
+            cv = std(dt) / mean(dt);
+
+            if cv > 1.0
+                mainFreq = median(1 ./ dt);
+                methodStr = 'Med';
+            else
+                mainFreq = 1 / mean(dt);
+                methodStr = 'Mean';
+            end
+
+            if length(dt) >= 5
+                peakFreq80 = prctile(1 ./ dt, 80);
+            end
+        end
+    end
+    
+    stats = struct('count', cnt, ...
+                   'mainFreq', mainFreq, ...
+                   'method', methodStr, ...
+                   'peakFreq80', peakFreq80, ...
+                   'dt', dt_vals);
 end

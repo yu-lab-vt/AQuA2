@@ -103,9 +103,9 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
         opts.minValueDat2 = minDat2;
     end
     
-    if exist('ff','var')
-        waitbar(0.4,ff);
-    end
+    % if exist('ff','var')
+    %     waitbar(0.4,ff);
+    % end
     
     [H,W,L,T] = size(dat1);
     opts.sz = [H,W,L,T];
