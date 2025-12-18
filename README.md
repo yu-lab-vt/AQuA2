@@ -124,6 +124,7 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 # Updates
 
 **12/02/2025**
+
 Add direct CFU viewer. IMPORTANT: Adjust opts saving format. Fix a bug in CFU.
 
 **08/27/2025**
