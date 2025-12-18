@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**12/18/2025**
+
+Add frequency feature for CFU. Shorten saving time (using uncompressed mat). 
+
 **12/02/2025**
 
 Add direct CFU viewer. IMPORTANT: Adjust opts saving format. Fix a bug in CFU.
