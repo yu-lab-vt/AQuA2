@@ -123,6 +123,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**03/05/2026**
+
+Allow recurvie search in `CFU_cmd_batch.m`. Bug fix.
+
 **12/18/2025**
 
 Add frequency feature for CFU. Shorten saving time (using uncompressed mat). 
