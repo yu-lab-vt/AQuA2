@@ -32,8 +32,14 @@ if bitDepth > 0
 end
 
 % --- Tiff Object Initialization ---
-% Use 'w8' for BigTIFF support (>4GB files)
-t = Tiff(fName, 'w8');
+estimatedSizeBytes = numel(dat) * (bitDepth / 8);
+if estimatedSizeBytes > 3.9 * 1024^3
+    tiffMode = 'w8';
+    disp("Using BigTiff export...")
+else
+    tiffMode = 'w';
+end
+t = Tiff(fName, tiffMode);
 
 % Ensure file is closed if error occurs
 cleanupObj = onCleanup(@() close(t));
@@ -87,8 +93,6 @@ if ndims(dat) == 4
             t.writeDirectory(); % Start new frame
         end
         t.setTag(tagstruct);
-        % Permute might be needed if data is not interleaved correctly, 
-        % but Tiff.write expects HxWx3 for chunky RGB.
         t.write(dat(:,:,:,ii));
     end
 end

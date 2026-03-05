@@ -109,7 +109,7 @@ if(opts.detectGlo)
 
     waitbar(1,ff);
     fprintf('Done\n')
-    ui.detect.postRun([],[],f,gloEvt1,gloEvt2,gloDatR1,gloDatR2,'Global Events');
+    % ui.detect.postRun([],[],f,gloEvt1,gloEvt2,gloDatR1,gloDatR2,'Global Events');
     fh.nEvtName.Text = 'nEvt|nGlo';
     if(~opts.singleChannel)
         fh.nEvt.Text = [num2str(numel(gloEvt1)),' | ',num2str(numel(gloEvt2))];

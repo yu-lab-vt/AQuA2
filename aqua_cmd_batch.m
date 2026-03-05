@@ -421,22 +421,30 @@ for xxx = 1:numel(files)
     if batchSet.outputMovie
         if opts.sz(3) == 1
             ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
+            ov1 = double(ov1)/255.0;
             if ~opts.singleChannel
                 ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
-                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_1.tif'],ov1,0);
-                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_2.tif'],ov2,0);
+                ov2 = double(ov2)/255.0;
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_1.tif'],ov1,8);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Channel_2.tif'],ov2,8);
             else
-                io.writeTiffSeq([pOut_each,name,'_AQuA2_Movie.tif'],ov1,0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Movie.tif'],ov1,8);
             end
         else
+            % 3D
             ov1 = plt.regionMapWithData(evt1,datOrg1,0.5,datR1);
+            ov1 = double(ov1)/255.0;
             for tt = 1:opts.sz(4)
-                io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch1_Frame',num2str(tt),'.tif'],ov1(:,:,:,:,tt),0);
+                io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch1_Frame',num2str(tt),'.tif'],ov1(:,:,:,:,tt),8);
             end
             if ~opts.singleChannel
                 ov2 = plt.regionMapWithData(evt2,datOrg2,0.5,datR2);
-                io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch2_Frame',num2str(tt),'.tif'],ov2(:,:,:,:,tt),0);
+                ov2 = double(ov2)/255.0;
+                for tt = 1:opts.sz(4)
+                    io.writeTiffSeq([pOut_each,name,'_AQuA2_Ch2_Frame',num2str(tt),'.tif'],ov2(:,:,:,:,tt),8);
+                end
             end
         end
     end
 end
+

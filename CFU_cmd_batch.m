@@ -1,20 +1,18 @@
 %% setup
 % 
 % Read Me:
-% Please set cfuOpts in the following lines first.
-
-% 'pIn' is the folder containing AQuA2 saved files from `aqua_cmd_batch`.
+% Please set path & cfuOpts in the following lines first.
 
 close all;
 clc;
 clearvars
 startup;  % initialize
 %% setting
-pIn = 'F:\Test_data\Check\'; % AQuA2 saved files folder
-pOut = 'F:\Test_data\CheckCFU\'; % The folder for cfu results
+pIn = 'F:\YOUR_data\';                  % Input path, containing AQuA2 saved files '_AQuA2.mat' from aqua_cmd_batch.
+% pOut = 'F:\YOUR_data\CFUresult\';     % Output path, same with each '_AQuA2.mat' file if not set
 
-whetherUpdateRes = true;    % whether to update saved files
-whetherOutputCFURes = true; % whether to output cfu results in pOut folder
+whetherUpdateRes = true;                % whether to update saved files
+whetherOutputCFURes = true;             % whether to output cfu results in pOut folder
 
 cfuOpts.cfuDetect.overlapThr1 = 0.5;    % channel 1, overlap threshold
 cfuOpts.cfuDetect.overlapThr2 = 0.5;    % channel 2, overlap threshold
@@ -24,17 +22,23 @@ cfuOpts.cfuDetect.minNumEvt2 = 3;       % channel 2, minimum number of events in
 cfuOpts.cfuAnalysis.maxDist = 10;       % maximum distance (time points) for judging cooccurrence
 cfuOpts.cfuAnalysis.shift = 0;          % shift distance (time points) for judging cooccurrence
 
-cfuOpts.cfuGroup.pValueThr = 1e-5;         % p value threshold for grouping CFU
+cfuOpts.cfuGroup.pValueThr = 1e-5;      % p value threshold for grouping CFU
 cfuOpts.cfuGroup.cfuNumThr = 3;         % minimum number of CFUs in one group
 
 %% For cell boundary and landmark
-mkdir(pOut);
-files = dir(fullfile(pIn,'*AQuA2.mat'));
+if exist("pOut", "var")
+    mkdir(pOut);
+end
+files = dir(fullfile(pIn, '**', '*AQuA2.mat'));
 
 for xxx = 1:numel(files)
+    fprintf("processing file %d/%d\n", xxx, numel(files));
+
     f1 = files(xxx).name; 
+    filepath = files(xxx).folder;
+
     %% load result
-    load([pIn, f1]);
+    load(fullfile(filepath, f1));
     
     datPro = rescale(mean(single(res.datOrg1), 4));
 
@@ -52,7 +56,13 @@ for xxx = 1:numel(files)
         res.cfuInfo2 = cfuInfo2;
         res.cfuRelation = cfuRelation;
         res.cfuGroupInfo = cfuGroupInfo;
-        save([pIn, f1],'res','-v7.3');
+        save(fullfile(filepath, f1),'res','-v7.3');
+    end
+
+    if exist("pOut", "var")
+        savepath = pOut;
+    else
+        savepath = filepath;
     end
 
     if whetherOutputCFURes
@@ -60,6 +70,6 @@ for xxx = 1:numel(files)
         cfures.cfuInfo2 = cfuInfo2;
         cfures.cfuRelation = cfuRelation;
         cfures.cfuGroupInfo = cfuGroupInfo;
-        save([pOut,f1(1:end-4),'_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts','datPro');
+        save(fullfile(savepath,[f1(1:end-4),'_res_cfu.mat']),'cfuInfo1','cfuInfo2','cfuRelation','cfuGroupInfo','cfuOpts','datPro');
     end
 end
