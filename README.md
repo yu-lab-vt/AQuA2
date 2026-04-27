@@ -4,16 +4,17 @@ AQuA2 (Activity Quantification and Analysis) is a tool for quantifying spatiotem
 
 If you have any feedback or issue, you are welcome to either post issue in Issues section or send email to yug@tsinghua.edu.cn (Guoqiang Yu at Tsinghua University).
 
-- [More about AQuA2](#more-about-aqua)
+- [More about AQuA](#more-about-aqua)
   - [Potential Input Data](#potential-input-data)
   - [Detection Pipeline](#detection-pipeline)
   - [Functional unit analysis](#functional-unit-analysis)
   - [Output Features](#output-features)
   - [Graphical User Interface for Event Detection](#graphical-user-interface-for-event-detection)
-  - [Graphical User Interface for CFU Module](#Graphical-User-Interface-for-CFU-Module)
+  - [Graphical User Interface for CFU Module](#graphical-user-interface-for-cfu-module)
 - [Download and installation](#download-and-installation)
   - [MATLAB GUI](#matlab-gui)
   - [MATLAB Without GUI](#matlab-without-gui)
+    - [Use aqua\_batch.m file](#use-aqua_batchm-file)
   - [Fiji plugin](#fiji-plugin)
 - [Getting started](#getting-started)
 - [Example datasets](#example-datasets)
@@ -122,6 +123,10 @@ You can try these real data sets in AQuA2.
 Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, Philipp N. Braaker, Mark Bright, Rafael G. Almeida, Jing-Xuan Lim, Virginia M. Rutten, Wei Zheng, Mengfan Wang, Michael E. Reitman, Yizhi Wang, Kira E. Poskanzer, David A. Lyons, Axel Nimmerjahn, Misha B. Ahrens, Guoqiang Yu, *Fast, Accurate, and Versatile Data Analysis Platform for the Quantification of Molecular Spatiotemporal Signals*, BioRxiv 592259; doi: https://doi.org/10.1101/2024.05.02.592259. **[[Link to BioRxiv]](https://doi.org/10.1101/2024.05.02.592259)**
 
 # Updates
+
+**04/27/2026:**
+
+Optimize Global Event management: improved overlay synchronization and automatic cleanup of global event layers in UI. Fix potential index mismatch errors when applying region masks to event overlays.
 
 **03/05/2026**
 

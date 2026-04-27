@@ -67,11 +67,20 @@ function updtFeature(~, ~, f)
     if opts.propMetric || opts.networkFeatures
         % gather data
         fprintf('Gathering data ...\n')
+        ovNeedSync = false;
         ov0 = ov('Events_Red');
         datR1 = fea.reconstructDatR(ov0,sz);
 
         if ~isempty(evtGloLst1)
-            ov0 = ov('Global Events_Red');
+            if ov.isKey('Global Events_Red')
+                ov0 = ov('Global Events_Red');
+            else
+                ov0 = ui.over.getOv(f,evtGloLst1,sz,[],1);
+                ov0.name = 'Global Events';
+                ov0.colorCodeType = {'Random'};
+                ov('Global Events_Red') = ov0;
+                ovNeedSync = true;
+            end
             datRGlo1 = fea.reconstructDatR(ov0,sz);
         end
         
@@ -79,9 +88,20 @@ function updtFeature(~, ~, f)
             ov0 = ov('Events_Green');
             datR2 = fea.reconstructDatR(ov0,sz);
             if ~isempty(evtGloLst2)
-                ov0 = ov('Global Events_Green');
+                if ov.isKey('Global Events_Green')
+                    ov0 = ov('Global Events_Green');
+                else
+                    ov0 = ui.over.getOv(f,evtGloLst2,sz,[],2);
+                    ov0.name = 'Global Events';
+                    ov0.colorCodeType = {'Random'};
+                    ov('Global Events_Green') = ov0;
+                    ovNeedSync = true;
+                end
                 datRGlo2 = fea.reconstructDatR(ov0,sz);
             end
+        end
+        if ovNeedSync
+            setappdata(f,'ov',ov);
         end
     end
 
@@ -107,17 +127,17 @@ function updtFeature(~, ~, f)
     waitbar(0.8, gg, 'Network features');
     if opts.networkFeatures
         %region, landmark, network and save results
-        ftsLstE1 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datR1, evtLst1, ftsLstE1, gg,1);
+        ftsLstE1 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datR1, evtLst1, ftsLstE1, gg,1,true);
         setappdata(f,'fts1',ftsLstE1);
         if ~isempty(evtGloLst1)
-            ftsLstGloE1 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datRGlo1, evtGloLst1, ftsLstGloE1, gg,1);
+            ftsLstGloE1 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datRGlo1, evtGloLst1, ftsLstGloE1, gg,1,false);
             setappdata(f,'ftsGlo1',ftsLstGloE1);
         end
         if(~opts.singleChannel)
-            ftsLstE2 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datR2, evtLst2, ftsLstE2, gg,2);
+            ftsLstE2 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datR2, evtLst2, ftsLstE2, gg,2,true);
             setappdata(f,'fts2',ftsLstE2);
             if ~isempty(evtGloLst2)
-                ftsLstGloE2 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datRGlo2, evtGloLst2, ftsLstGloE2, gg,2);
+                ftsLstGloE2 = ui.detect.updtFeatureRegionLandmarkNetworkShow(f, datRGlo2, evtGloLst2, ftsLstGloE2, gg,2,false);
                 setappdata(f,'ftsGlo2',ftsLstGloE2);
             end
         end
@@ -137,6 +157,4 @@ function updtFeature(~, ~, f)
     
     delete(gg)
 end 
-
-
 

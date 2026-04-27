@@ -107,15 +107,55 @@ if(opts.detectGlo)
         gloEvt2 = [];gloDatR2 = []; gloRiseLst2 = [];
     end
 
+    % keep global-event overlays in sync with the detected event lists
+    ov = getappdata(f,'ov');
+    ovName = 'Global Events';
+    ov1 = ui.over.getOv(f,gloEvt1,opts.sz,gloDatR1,1);
+    ov1.name = ovName;
+    ov1.colorCodeType = {'Random'};
+    ov([ovName,'_Red']) = ov1;
+    ov2 = ui.over.getOv(f,gloEvt2,opts.sz,gloDatR2,2);
+    ov2.name = ovName;
+    ov2.colorCodeType = {'Random'};
+    ov([ovName,'_Green']) = ov2;
+    setappdata(f,'ov',ov);
+
+    btSt = getappdata(f,'btSt');
+    if ~isfield(btSt,'overlayDatSel') || isempty(btSt.overlayDatSel)
+        btSt.overlayDatSel = 'None';
+    end
+    setappdata(f,'btSt',btSt);
+    ui.over.updateOvFtMenu([],[],f);
+
     waitbar(1,ff);
     fprintf('Done\n')
-    % ui.detect.postRun([],[],f,gloEvt1,gloEvt2,gloDatR1,gloDatR2,'Global Events');
     fh.nEvtName.Text = 'nEvt|nGlo';
     if(~opts.singleChannel)
         fh.nEvt.Text = [num2str(numel(gloEvt1)),' | ',num2str(numel(gloEvt2))];
     else
         fh.nEvt.Text = [num2str(numel(evtLocalLst1)),' | ',num2str(numel(gloEvt1))];
     end
+else
+    setappdata(f,'gloEvt1',[]);
+    setappdata(f,'gloRiseLst1',[]);
+    setappdata(f,'gloEvt2',[]);
+    setappdata(f,'gloRiseLst2',[]);
+
+    ov = getappdata(f,'ov');
+    if ov.isKey('Global Events_Red')
+        remove(ov,'Global Events_Red');
+    end
+    if ov.isKey('Global Events_Green')
+        remove(ov,'Global Events_Green');
+    end
+    setappdata(f,'ov',ov);
+
+    btSt = getappdata(f,'btSt');
+    if isfield(btSt,'overlayDatSel') && strcmp(btSt.overlayDatSel,'Global Events')
+        btSt.overlayDatSel = 'Events';
+    end
+    setappdata(f,'btSt',btSt);
+    ui.over.updateOvFtMenu([],[],f);
 end
 delete(ff);
 

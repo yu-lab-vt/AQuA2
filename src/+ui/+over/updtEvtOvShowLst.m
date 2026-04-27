@@ -12,7 +12,7 @@ xSel = true(numel(ov0.sel),1);
 if ~isempty(btSt.filterMsk1)
     xSel = xSel.*btSt.filterMsk1;
 end
-if ~isempty(btSt.regMask1)
+if ~isempty(btSt.regMask1) && numel(btSt.regMask1)==numel(xSel)
     xSel = xSel.*btSt.regMask1;
 end
 if ~isempty(btSt.rmLst1)
@@ -29,7 +29,7 @@ xSel = true(numel(ov0.sel),1);
 if ~isempty(btSt.filterMsk2)
     xSel = xSel.*btSt.filterMsk2;
 end
-if ~isempty(btSt.regMask2)
+if ~isempty(btSt.regMask2) && numel(btSt.regMask2)==numel(xSel)
     xSel = xSel.*btSt.regMask2;
 end
 if ~isempty(btSt.rmLst2)
@@ -44,5 +44,4 @@ setappdata(f,'ov',ov);
 ui.movStep(f,[],[],1);
 
 end
-
 
