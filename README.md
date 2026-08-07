@@ -124,6 +124,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**08/07/2026:**
+
+Enable 3D display for R2023a+. Add a reset button to allow repetitive trials of preprocessing on Raw data. Fix mask builder UI.
+
 **05/18/2026:**
 
 Fix CFU output compatibility issue caused by one-argument `rescale` calls in some MATLAB environments. Add `util.normalize01` for stable `[0, 1]` normalization and use it in CFU output, batch CFU output, and multi-session scripts. Also harden multi-session FOV registration when global event overlays are missing.
