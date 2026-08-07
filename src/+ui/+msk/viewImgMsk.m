@@ -16,7 +16,7 @@ function viewImgMsk(~, ~, f,stg)
     ix = find(tbDat, 1);
 
     rr = bdMsk{ix};
-    if ~strcmp(rr.type,'region') && ~strcmp(rr.type,'landmark') && strcmp(rr.type,'regionMarker') 
+    if ~strcmp(rr.type,'region') && ~strcmp(rr.type,'landmark') && ~strcmp(rr.type,'regionMarker') 
         return;
     end
 
@@ -24,24 +24,23 @@ function viewImgMsk(~, ~, f,stg)
     [H, W, L] = size(datAvg);
 
     if(stg==0)
-        % remove too small and too large
-        mskx = datAvg >= rr.thr;
-        if ~(strcmp(rr.type,'background') || strcmp(rr.type,'foreground'))
-            if rr.morphoChange<0
-                mskx = imerode(mskx,strel('disk',-rr.morphoChange));
-            elseif rr.morphoChange>0
-                mskx = imdilate(mskx,strel('disk',rr.morphoChange));
+        % Update: retain marker and landmark masks without thresholding.
+        if ~strcmp(rr.type, 'regionMarker') && ~strcmp(rr.type, 'landmark')
+            mskx = datAvg >= rr.thr;
+            if ~(strcmp(rr.type,'background') || strcmp(rr.type,'foreground'))
+                if rr.morphoChange<0
+                    mskx = imerode(mskx,strel('disk',-rr.morphoChange));
+                elseif rr.morphoChange>0
+                    mskx = imdilate(mskx,strel('disk',rr.morphoChange));
+                end
+                cc = bwconncomp(mskx);
+                ccSz = cellfun(@numel, cc.PixelIdxList);
+                cc.PixelIdxList = cc.PixelIdxList(ccSz <= rr.maxSz & ccSz >= rr.minSz);
+                cc.NumObjects = numel(cc.PixelIdxList);
+                mskx = labelmatrix(cc) > 0;
             end
-
-            cc = bwconncomp(mskx);
-            ccSz = cellfun(@numel, cc.PixelIdxList);
-            cc.PixelIdxList = cc.PixelIdxList(ccSz <= rr.maxSz & ccSz >= rr.minSz);
-            cc.NumObjects = numel(cc.PixelIdxList);
-            mskx = labelmatrix(cc);
+            rr.mask = mskx;
         end
-
-        % save mask
-        rr.mask = mskx;
     end
     bdMsk{ix} = rr;
     bd('maskLst') = bdMsk;

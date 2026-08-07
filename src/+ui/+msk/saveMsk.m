@@ -31,7 +31,7 @@ function saveMsk(~,~,f,op)
     % combine masks
     opReg = fh.saveMskRegOp.Value;
     opLmk = fh.saveMskLmkOp.Value;
-    opMar = fh.saveMarkerOp.Value;
+    opMar = find(strcmp(fh.saveMarkerOp.Items, fh.saveMarkerOp.Value));
     regMskAll = [];
     lmkMskAll = [];
     markerMap = [];
@@ -71,7 +71,11 @@ function saveMsk(~,~,f,op)
             end
         end
         if strcmp(rr0.type,'regionMarker')
-            markerMap = rr0.mask;
+            if isempty(markerMap)
+                markerMap = double(rr0.mask > 0);
+            else
+                markerMap = markerMap + double(rr0.mask > 0);
+            end
         end
     end
     
@@ -81,8 +85,10 @@ function saveMsk(~,~,f,op)
     
     % segment regions using region markers and get boundaries --------------
     if ~isempty(markerMap)
-        [H,W] = size(markerMap);
-        markerIdxMap = bwlabel(markerMap);
+        H = opts.sz(1); W = opts.sz(2);
+        L = 1; if numel(opts.sz) >= 3, L = opts.sz(3); end
+        
+        markerIdxMap = bwlabeln(markerMap > 0);
         markerLst = label2idx(markerIdxMap);
         
         ccRegA = bwconncomp(regA);
@@ -91,7 +97,6 @@ function saveMsk(~,~,f,op)
         nn = 1;
         
         for ii=1:nReg
-            % markers overlapped with regions
             pix00 = ccRegA.PixelIdxList{ii};
             idx00 = markerIdxMap(pix00);
             idx00 = idx00(idx00>0);
@@ -100,33 +105,33 @@ function saveMsk(~,~,f,op)
             if opMar==1  % segmentation with distance transform
                 if numel(idx00)>1
                     markerSel = markerLst(idx00);
-                    bw = zeros(H,W);
-                    bw(pix00) = 1;
-                    distMat = nan(H,W,numel(idx00));
+                    bw = false(H,W,L);
+                    bw(pix00) = true;
+                    distMat = nan(H,W,L,numel(idx00));
                     for jj=1:numel(idx00)
-                        mk = zeros(H,W);
-                        mk(markerSel{jj}) = 1;
-                        tmp = bwdistgeodesic(bw>0,mk>0);
-                        distMat(:,:,jj) = tmp;
+                        mk = false(H,W,L);
+                        mk(markerSel{jj}) = true;
+                        % Update: clip markers to their region before distance calculation.
+                        mk = mk & bw;
+                        if any(mk(:))
+                            distMat(:,:,:,jj) = bwdistgeodesic(bw, mk);
+                        end
                     end
-                    [~,lbl00] = nanmin(distMat,[],3);
-                    msk00 = zeros(H,W);
-                    msk00(pix00) = 1;
-                    lbl00(msk00==0) = nan;
+                    [min_dist, lbl00] = nanmin(distMat, [], 4); 
+                    msk00 = false(H,W,L);
+                    msk00(pix00) = true;
+                    
+                    lbl00(isnan(min_dist)) = 0;
+                    lbl00(~msk00) = 0;
+                    
                     for jj=1:numel(idx00)
-                        tmp = lbl00==jj;
+                        tmp = (lbl00==jj);
                         if sum(tmp(:))>0
-                            %cc = bwboundaries(tmp);
-                            %ccRegx{nn} = cc{1};
                             ccRegx{nn} = find(tmp>0);
                             nn = nn + 1;
                         end
                     end
                 else
-                    %tmp = zeros(H,W);
-                    %tmp(pix00) = 1;
-                    %cc = bwboundaries(tmp);
-                    %ccRegx{nn} = cc{1};
                     ccRegx{nn} = pix00;
                     nn = nn + 1;
                 end
@@ -134,21 +139,17 @@ function saveMsk(~,~,f,op)
             
             if opMar==2  % delete regions containing any mask
                 if numel(idx00)==0
-                    %tmp = zeros(H,W);
-                    %tmp(pix00) = 1;
-                    %cc = bwboundaries(tmp);
-                    %ccRegx{nn} = cc{1};
                     ccRegx{nn} = pix00;
-                    nn = nn + 1;                    
+                    nn = nn + 1;
                 end
             end
         end
+        display(nn);
         ccReg = [];
         ccReg.NumObjects = numel(ccRegx);
         ccReg.PixelIdxList = ccRegx;
     else
         ccReg = bwconncomp(regA);
-        %ccReg = bwboundaries(regA,'noholes');
     end
     
     ccLmk = bwconncomp(lmkA);
@@ -176,33 +177,33 @@ function saveMsk(~,~,f,op)
     if L == 1
         for ii=1:numel(regAll)
             tmp = regAll{ii};
-            if numel(tmp)>2 && strcmp(tmp{3},'auto')
+            % Update: remove prior imported manual objects before saving.
+            if numel(tmp)>2 && (strcmp(tmp{3},'auto') || strcmp(tmp{3},'manual') || strcmp(tmp{3},'imported'))
                 regAll{ii} = [];
-            end        
+            end                
         end
         if numel(regAll)>0
             regAll = regAll(~cellfun(@isempty,regAll));
         end
-
         for ii=1:numel(lmkAll)
             tmp = lmkAll{ii};
-            if numel(tmp)>2 && strcmp(tmp{3},'auto')
+            if numel(tmp)>2 && (strcmp(tmp{3},'auto') || strcmp(tmp{3},'manual') || strcmp(tmp{3},'imported'))
                 lmkAll{ii} = [];
-            end        
+            end                
         end
         if numel(lmkAll)>0
             lmkAll = lmkAll(~cellfun(@isempty,lmkAll));
         end
-
+        
         nNow = numel(regAll);
         for ii=1:ccReg.NumObjects
             tmp = [];
             xx = ccReg.PixelIdxList{ii};
             if numel(xx)>10
-                msk = false(H,W,L);
+                % Update: use a 2-D mask for boundary extraction.
+                msk = false(H,W);
                 msk(xx) = true;
                 tmp{1} = bwboundaries(msk);
-                %tmp{1} = [xx(:,2),H-xx(:,1)+1];
                 tmp{2} = xx;
                 tmp{3} = 'auto';
                 tmp{4} = 'None';
@@ -292,6 +293,5 @@ function saveMsk(~,~,f,op)
         fh.ims.im2b.AlphaData = alphaMap*(1-fh.sldIntensityTransR.Value);
     end
     ui.movStep(f,[],[],1);
-    
+    drawnow;
 end
-

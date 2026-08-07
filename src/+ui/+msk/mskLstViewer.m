@@ -1,5 +1,5 @@
 function mskLstViewer(~,evtDat,f,op)
-    % op: refresh, remove, select
+    % op: refresh, remove, select, or open.
     
     fh = guidata(f);
     tb = fh.mskTable;
@@ -8,12 +8,7 @@ function mskLstViewer(~,evtDat,f,op)
     bdMsk = bd('maskLst');
     stg = 0;
     
-    % t.ColumnName = {'','Mask name','Type'};
-    % rr.name = ffName;
-    % rr.datAvg = datAvg;
-    % rr.type = mskType;
-    
-    if strcmp(op,'refresh')
+    if strcmp(op,'refresh') || strcmp(op,'open')
         nMsk = numel(bdMsk);
         dat = cell(nMsk,3);
         for ii=1:nMsk
@@ -25,6 +20,10 @@ function mskLstViewer(~,evtDat,f,op)
         dat{nMsk,1} = true;
         tb.Data = dat;
         rr = bdMsk{end};
+        
+        if strcmp(op, 'open')
+            stg = 1; 
+        end
     end
     
     if strcmp(op,'select')
@@ -60,23 +59,29 @@ function mskLstViewer(~,evtDat,f,op)
             setappdata(f,'bd',bd);
             return
         else
-            idx = cell2mat(dat(:,1));
-            dat = dat(~idx,:);
-            dat{1,1} = true;
+            idxLog = cell2mat(dat(:,1));
+            delIdx = find(idxLog, 1);
+            if isempty(delIdx)
+                delIdx = 1;
+            end
+            
+            dat = dat(~idxLog,:);
+            
+            % Update: select the nearest remaining layer after removal.
+            newIdx = min(delIdx, size(dat,1));
+            dat{newIdx,1} = true;
+            
             tb.Data = dat;
-            bdMsk = bdMsk(~idx);
-            rr = bdMsk{1};
+            bdMsk = bdMsk(~idxLog);
+            rr = bdMsk{newIdx};
             bd('maskLst') = bdMsk;
             setappdata(f,'bd',bd);
+            
+            % Update: preserve the selected mask without recalculating it.
+            stg = 1; 
         end
     end
     
     ui.msk.updtMskSld([],[],f,rr);
-    ui.msk.viewImgMsk([],[],f,stg);  % update image
-    
+    ui.msk.viewImgMsk([],[],f,stg);  % update image 
 end
-
-
-
-
-
