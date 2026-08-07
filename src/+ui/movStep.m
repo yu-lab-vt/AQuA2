@@ -173,12 +173,17 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
                         thrData = thrData + cat(3,curDat,curDat,curDat);
                         ims{ii}.CData = flipud(thrData*briScl(ii));
                     else
-                        col = [0,0,0;0.64,0.48,0.16]; 
+                        % Update 2026-08-07: use the full 8-bit overlay range for activity preview.
+                        col = zeros(256,3);
+                        col(end,:) = [0.64,0.48,0.16];
+                        alpha = zeros(256,1);
+                        alpha(end) = 1-fh.sldOverlayTrans.Value;
                         ims{ii}.Data = curDat;
                         thrData = zeros(opts.sz(1:3),'uint8');
-                        thrData(dF>thrAct) = 1;
-                        ims{ii}.OverlayData = round(se.myResize(thrData,1/dsSclXY));
+                        thrData(dF>thrAct) = 255;
+                        ims{ii}.OverlayData = se.myResize(thrData,1/dsSclXY,'nearest');
                         ims{ii}.OverlayColormap = col;
+                        ims{ii}.OverlayAlphamap = alpha;
                     end
 
                 case 'Raw + overlay'

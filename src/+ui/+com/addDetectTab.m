@@ -40,7 +40,7 @@ function addDetectTab(f,pDeOut)
     p.Layout.Column  = [1,2];
     uieditfield(bPre,'Value','0','Tag','medSmo');
     uilabel(bPre,'Text','Median filter radius (For salt and pepper noise)');
-    p = uilabel(bPre,'Text','------- Baseline modeling and noise modeling -------','HorizontalAlignment','center');
+    p = uilabel(bPre,'Text','------- Smoothing (not displayed in Raw) -------','HorizontalAlignment','center');
     p.Layout.Column  = [1,2];
     uieditfield(bPre,'Value','1','Tag','smoXY');
     uilabel(bPre,'Text','Gaussian filter radius');

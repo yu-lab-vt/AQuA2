@@ -1,12 +1,16 @@
 function [im1] = uiUpdateFor3D(f,fh,data)
 
-%Change axes to viewer3D
+% Update 2026-08-07: keep R2023a+ viewer initialization deterministic.
+v_str = version('-release');
+v_year = str2double(v_str(1:4));
+
+% Change axes to viewer3D
 % single view
-if strcmp(version('-release'),'2023a')
+if v_year >= 2023
     fh.Card2.Visible = 'off';
     fh.Card3.Visible = 'on';
     f.Position = getappdata(f,'guiMainSz');
-    pause(1);
+    drawnow;
 end
 
 delete(fh.mov);
@@ -18,15 +22,14 @@ pMov1.GradientColor = [.3,.3,.3];
 pMov1.ScaleBar = 'on';
 pMov1.Interactions = {'zoom','rotate','pan','axes','slice'};
 pMov1.Lighting = 'off';
+drawnow;
 im1 = volshow(data,'Parent',pMov1);
 im1.RenderingStyle = "GradientOpacity";
-% im1.AlphaData = ones(size(data),'single')*0.5;
+im1.Alphamap = linspace(0,1,256)';
+waitForViewer(pMov1);
 fh.mov = pMov1;
 fh.ims.im1 = im1;
 
-if strcmp(version('-release'),'2023a')
-    pause(0.5);
-end
 % side by side view
 delete(fh.movL)
 pMov2a = viewer3d(fh.bMov2Top,'Tag','movL');
@@ -38,15 +41,13 @@ pMov2a.GradientColor = [.3,.3,.3];
 pMov2a.ScaleBar = 'on';
 pMov2a.Interactions = {'zoom','rotate','pan','axes','slice'};
 pMov2a.Lighting = 'off';
+drawnow;
 im2a = volshow(data,'Parent',pMov2a);
 im2a.RenderingStyle = "GradientOpacity";
-% im2a.AlphaData = ones(size(data),'single')*0.5;
+im2a.Alphamap = linspace(0,1,256)';
+waitForViewer(pMov2a);
 fh.movL = pMov2a;
 fh.ims.im2a = im2a;
-
-if strcmp(version('-release'),'2023a')
-    pause(0.5);
-end
 
 delete(fh.movR)
 pMov2b = viewer3d(fh.bMov2Top,'Tag','movR');
@@ -58,9 +59,11 @@ pMov2b.GradientColor = [.3,.3,.3];
 pMov2b.ScaleBar = 'on';
 pMov2b.Interactions = {'zoom','rotate','pan','axes','slice'};
 pMov2b.Lighting = 'off';
+drawnow;
 im2b = volshow(data,'Parent',pMov2b);
 im2b.RenderingStyle = "GradientOpacity";
-% im2b.AlphaData = ones(size(data),'single')*0.5;
+im2b.Alphamap = linspace(0,1,256)';
+waitForViewer(pMov2b);
 fh.ims.im2b = im2b;
 fh.movR = pMov2b;
 
@@ -73,8 +76,11 @@ pMskMov1 = viewer3d(fh.mskGrid,'Tag','imgMsk');
 pMskMov1.ScaleBar = 'on';
 pMskMov1.Interactions = {'zoom','rotate','pan','axes','slice'};
 pMskMov1.Lighting = 'off';
+drawnow;
 imsMsk = volshow(data,'Parent',pMskMov1);
 imsMsk.RenderingStyle = "GradientOpacity";
+imsMsk.Alphamap = linspace(0,1,256)';
+waitForViewer(pMskMov1);
 fh.imgMsk = pMskMov1;
 fh.imsMsk = imsMsk;
 
@@ -138,12 +144,13 @@ fh.RemoveBuilder.Enable = 'off';
 fh.Clear.Enable = 'off';
 fh.mskBkChangeCol.Enable = 'on';
 
-pause(1e-4);
-im1.AlphaData = ones(size(data),'single')*0.5;
-pause(1e-4);
-im2a.AlphaData = ones(size(data),'single')*0.5;
-pause(1e-4);
-im2b.AlphaData = ones(size(data),'single')*0.5;
 guidata(f,fh);
 
+end
+
+function waitForViewer(viewer)
+    drawnow;
+    if isprop(viewer,'Busy') && viewer.Busy
+        waitfor(viewer,'Busy',false);
+    end
 end

@@ -4,10 +4,8 @@ fh = guidata(f);
 movs = {'im1','im2a','im2b'};
 
 if strcmp(op,'Overlay')
-    for i = 1:3
-        fh.ims.(movs{i}).OverlayAlphamap = 1-fh.sldOverlayTrans.Value;
-        pause(1e-4);
-    end
+    % Update 2026-08-07: rebuild per-label transparency after slider changes.
+    ui.movStep(f);
     return
 end
 
@@ -28,7 +26,6 @@ trans = [1-fh.sldIntensityTrans.Value,1-fh.sldIntensityTransL.Value,1-fh.sldInte
 if strcmp(op,'All')
     for i = 1:3
         fh.ims.(movs{i}).AlphaData = alphaMap*trans(i);
-        fh.ims.(movs{i}).OverlayAlphamap = 1-fh.sldOverlayTrans.Value;
         pause(1e-4);
     end    
     ui.movStep(f);
@@ -41,7 +38,6 @@ elseif strcmp(op,'Right')
 end
 
 end
-
 
 
 

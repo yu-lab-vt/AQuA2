@@ -56,19 +56,19 @@ end
 % go to next step
 if strcmp(op,'next')
     if ixTab<nTabTot
-        if(ixTab==1 && strcmp(fh.registrateCorrect.Enable,'on'))
-            selection = questdlg('Use current processed data? Enter next step, the registration and bleach correction cannot be changed?', ...
-                    'warning','OK','Cancel','Cancel');
-            switch selection
-                case 'OK'
-                    fh.registrateCorrect.Enable = 'off';
-                    fh.bleachCorrect.Enable = 'off';
-                    fh.medSmo.Enable = 'off';
-                    fh.preReset.Enable = 'off';
-                case 'Cancel'
-                    return
-            end
-        end
+%         if(ixTab==1 && strcmp(fh.registrateCorrect.Enable,'on'))
+%             selection = questdlg('Use current processed data? Enter next step, the registration and bleach correction cannot be changed?', ...
+%                     'warning','OK','Cancel','Cancel');
+%             switch selection
+%                 case 'OK'
+%                     fh.registrateCorrect.Enable = 'off';
+%                     fh.bleachCorrect.Enable = 'off';
+%                     fh.medSmo.Enable = 'off';
+%                     fh.preReset.Enable = 'off';
+%                 case 'Cancel'
+%                     return
+%             end
+%         end
         ixTab = ixTab + 1;
         fh.deOutTab.SelectedTab = fh.deOutTab.Children(ixTab);
     else
