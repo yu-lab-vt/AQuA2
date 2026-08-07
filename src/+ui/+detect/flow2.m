@@ -13,6 +13,8 @@ if(~isempty(getappdata(f,'datCorrect1')))
 end
 fh.registrateCorrect.Enable = 'off';
 fh.bleachCorrect.Enable = 'off';
+fh.medSmo.Enable = 'off';
+fh.preReset.Enable = 'off';
 
 ui.detect.actRun([],[],f);
 
@@ -40,5 +42,4 @@ end
 setappdata(f,'opts',opts);
 
 end
-
 

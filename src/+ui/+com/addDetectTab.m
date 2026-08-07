@@ -27,7 +27,7 @@ function addDetectTab(f,pDeOut)
     uibutton(deOutRunAll,'push','Text','RunAllSteps','Tag','deOutRunAll','ButtonPushedFcn',{@ui.detect.flow2,f},'BackgroundColor',[.3,.5,.8],'FontColor','1,1,1');
     
     % Preprocessing
-    bPre = uigridlayout(pPre,'Padding',[5,5,5,5],'ColumnWidth',{30,'1x'},'RowHeight',{20,20,20,20,20,20,20,20},'RowSpacing',5,'ColumnSpacing',5);
+    bPre = uigridlayout(pPre,'Padding',[5,5,5,5],'ColumnWidth',{30,'1x'},'RowHeight',{20,20,20,20,20,20,20,20,24},'RowSpacing',5,'ColumnSpacing',5);
     p = uilabel(bPre,'Text','------------------- Registration -------------------','HorizontalAlignment','center');
     p.Layout.Column  = [1,2];
     p = uidropdown(bPre,'Tag','registrateCorrect','Items',{'Not registrate','Rigid registration by cross correlation based on channel 1','Rigid registration by cross correlation based on channel 2'});
@@ -44,6 +44,10 @@ function addDetectTab(f,pDeOut)
     p.Layout.Column  = [1,2];
     uieditfield(bPre,'Value','1','Tag','smoXY');
     uilabel(bPre,'Text','Gaussian filter radius');
+    p = uibutton(bPre,'push','Text','Reset to raw','Tag','preReset',...
+        'ButtonPushedFcn',{@ui.detect.preProcessReset,f},...
+        'Tooltip','Discard the current preprocessing result and restore the loaded raw movie');
+    p.Layout.Column = [1,2];
     
     % event detection: active region detection
     bAct = uigridlayout(pAct,'Padding',[5,5,5,5],'ColumnWidth',{50,'1x'},'RowHeight',{20,20,15,20,20,20,20,'1x'},'RowSpacing',3,'ColumnSpacing',5);
@@ -110,4 +114,3 @@ function addDetectTab(f,pDeOut)
     p.Layout.Column = 2;
     uicheckbox(bFea,'Text','Network features','Value',0,'Tag','networkFeatures');
 end
-

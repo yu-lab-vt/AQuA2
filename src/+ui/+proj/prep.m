@@ -87,7 +87,18 @@ if op==0
     fh.deOutTab.Children(1).ForegroundColor = [0,0,0];
 
     % data and settings
-    vBasic = {'opts','scl','btSt','ov','bd','datOrg1','datOrg2'};
+    % Keep exactly two in-memory movie versions: the loaded raw data and
+    % the current preprocessing result. MATLAB copy-on-write avoids a
+    % physical duplicate until preprocessing changes the data.
+    datRaw1 = datOrg1;
+    datRaw2 = datOrg2;
+    preRawRange = struct('minValueDat1',opts.minValueDat1,...
+        'maxValueDat1',opts.maxValueDat1);
+    if ~opts.singleChannel
+        preRawRange.minValueDat2 = opts.minValueDat2;
+        preRawRange.maxValueDat2 = opts.maxValueDat2;
+    end
+    vBasic = {'opts','scl','btSt','ov','bd','datRaw1','datRaw2','preRawRange','datOrg1','datOrg2'};
     for ii=1:numel(vBasic)
         v0 = vBasic{ii};
         if exist(v0,'var')
@@ -141,6 +152,16 @@ if op>0
     end
     res.datOrg1 = dat1;
     res.datOrg2 = dat2;
+    % A saved experiment contains its current movie only. Treat it as the
+    % raw baseline for this session so Reset remains available after load.
+    res.datRaw1 = dat1;
+    res.datRaw2 = dat2;
+    res.preRawRange = struct('minValueDat1',opts.minValueDat1,...
+        'maxValueDat1',opts.maxValueDat1);
+    if ~opts.singleChannel
+        res.preRawRange.minValueDat2 = opts.minValueDat2;
+        res.preRawRange.maxValueDat2 = opts.maxValueDat2;
+    end
     opts.sz = size(dat1);
     fh.maxPro1 = max(dat1,[],4);
     fh.maxPro2 = max(dat2,[],4);
@@ -264,7 +285,6 @@ fprintf('Done ...\n');
 delete(ff);
 
 end
-
 
 
 

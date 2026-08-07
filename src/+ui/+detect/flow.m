@@ -61,13 +61,10 @@ if strcmp(op,'next')
                     'warning','OK','Cancel','Cancel');
             switch selection
                 case 'OK'
-                    if(~isempty(getappdata(f,'datOOrg1')))
-                        rmappdata(f,'datOOrg1');
-                        rmappdata(f,'datOOrg2');
-                    end
                     fh.registrateCorrect.Enable = 'off';
                     fh.bleachCorrect.Enable = 'off';
                     fh.medSmo.Enable = 'off';
+                    fh.preReset.Enable = 'off';
                 case 'Cancel'
                     return
             end
@@ -103,5 +100,4 @@ end
 setappdata(f,'opts',opts);
 
 end
-
 

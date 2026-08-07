@@ -13,13 +13,15 @@ if(isempty(preSetting) || ~isfield(opts,'alreadyProprecess') || ~opts.alreadyPro
     % 'if' is to judge whether this step is already done. Since this step
     % is time-consuming.
     opts = getappdata(f,'opts');
-    datOrg1 = getappdata(f,'datOOrg1');
-    datOrg2 = getappdata(f,'datOOrg2');
+    datOrg1 = getappdata(f,'datRaw1');
+    datOrg2 = getappdata(f,'datRaw2');
     if(isempty(datOrg1))
+        % Compatibility with figures created before raw data was stored at
+        % load time. This fallback is only used once for such sessions.
         datOrg1 = getappdata(f,'datOrg1');
         datOrg2 = getappdata(f,'datOrg2');
-        setappdata(f,'datOOrg1',datOrg1);
-        setappdata(f,'datOOrg2',datOrg2);
+        setappdata(f,'datRaw1',datOrg1);
+        setappdata(f,'datRaw2',datOrg2);
     end
     
     opts.registrateCorrect = find(strcmp(fh.registrateCorrect.Value,fh.registrateCorrect.Items));
