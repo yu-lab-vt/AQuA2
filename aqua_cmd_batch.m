@@ -1,56 +1,43 @@
 %% setup
 % 
 % Read Me:
-% Please set 'AQuA/cfg/parameters_for_batch' first.
-% The script will read the parameters from that excel to deal with data.
-% How many files you have, how many parameter settings should be in that excel.
-% Suggest sort the files in order to set parameters for each.
-
-
-% Please put all the input files under directory 'pIn'.
-% .tif/.tiff format for 2D+t files, .mat format for 3D+t files.
+% Set pIn to a folder to recursively process every supported input file with
+% Preset1. Leave pIn empty to use cfg/batch.csv instead.
+% parameters_for_batch.csv defines reusable Preset1, Preset2, ... columns.
+% In batch.csv, inputPath is required; outputPath is optional. Empty outputPath
+% writes the result alongside its input file.
 
 
 close all;
 clc;
 clearvars
 startup;  % initialize
-pIn = 'D:\AQuA2-data\'; %% input file folder
-pOut = 'D:\AQuA2-data\result\'; %% the folder for output results. Note that it ends with \.
+pIn = '';  % Input folder. Leave empty to use cfg/batch.csv.
 
 batchSet.propMetric = true;    % whether extract propagation-related features
 batchSet.networkFeatures = true; % whether extract network features
 
 batchSet.outputMovie = true;    % whether to output movie with detection overlay
 batchSet.outputFeatureTable = true; % whether to output feature table
-
-%% For cell boundary and landmark
-p_cell = '';   % cell boundary path, if you have
-p_landmark = '';   % landmark path, if you have
-
-bd = containers.Map;
-bd('None') = [];
-if(~strcmp(p_cell,''))
-    cell_region = load(p_cell);
-    bd('cell') = cell_region.bd0;
+batchSet.batchConfigFile = fullfile('cfg','batch.csv');
+batchSet.parameterConfigFile = fullfile('cfg','parameters_for_batch.csv');
+% In batch.csv, fill cellMaskPath and landmarkMaskPath for each file.
+% Supported formats: AQuA2 region MAT files (variable bd0) and binary TIFFs.
+if strlength(string(pIn)) > 0
+    batchJobs = collectFolderJobs(pIn);
+else
+    batchJobs = readBatchJobs(batchSet.batchConfigFile);
 end
-if(~strcmp(p_landmark,''))
-    landmark = load(p_landmark);
-    bd('landmk') = landmark.bd0;
+if isempty(batchJobs)
+    error('aqua_cmd_batch:NoInputFiles','No input files were found.');
 end
-
-mkdir(pOut);
-
-% 2025/08/25 updated: multi-mode input
-files_tif = dir(fullfile(pIn, '*.tif'));
-files_tiff = dir(fullfile(pIn, '*.tiff'));    % use .tif/.tiff for 2D+time data
-files_mat = dir(fullfile(pIn, '*.mat'));      % use .mat for 3D+time data
-files = [files_tif; files_tiff; files_mat];
     
-for xxx = 1:numel(files)
-    f1 = files(xxx).name; 
+for xxx = 1:height(batchJobs)
+    inputPath = char(batchJobs.inputPath(xxx));
+    [inputFolder,inputName,inputExtension] = fileparts(inputPath);
+    f1 = [inputName,inputExtension];
     %% load setting (you can also manually modify setting here)
-    opts = util.parseParam_for_batch(xxx);
+    opts = util.parseParam_for_batch(batchJobs.preset(xxx),[],batchSet.parameterConfigFile);
     opts.singleChannel = true;      % batch only leverages single channel for simplicity
     opts.whetherExtend = true;
 
@@ -60,7 +47,7 @@ for xxx = 1:numel(files)
 
     %% load data
     disp('Loading...');
-    [datOrg1,datOrg2,opts] = burst.prep1(pIn,f1,pIn,[],[],opts);
+    [datOrg1,datOrg2,opts] = burst.prep1(inputFolder,f1,inputFolder,[],[],opts);
     [H,W,L,T] = size(datOrg1);
     opts.singleChannel = isempty(datOrg2);
     %% preprocessing
@@ -89,6 +76,12 @@ for xxx = 1:numel(files)
         end
     end
     opts.sz = size(datOrg1); sz = opts.sz;
+
+    %% Load per-file cell boundaries and landmarks from batch.csv
+    bd = containers.Map;
+    bd('None') = [];
+    bd = addBatchRegionFile(bd,batchJobs.cellMaskPath(xxx),'cell',opts,batchSet.batchConfigFile);
+    bd = addBatchRegionFile(bd,batchJobs.landmarkMaskPath(xxx),'landmk',opts,batchSet.batchConfigFile);
 
     %% Noise estimation and baseline estimation
     evtSpatialMask = true(sz(1:3));
@@ -352,13 +345,15 @@ for xxx = 1:numel(files)
     
     %% save output
     disp('Saving result...');
-    name = erase(f1, {'.tiff','.tif','.mat'});
-    if (numel(files)>1)
-        pOut_each = [pOut, name, '_results\'];
-        mkdir(pOut_each);
-    else
-        pOut_each = pOut;
+    name = inputName;
+    pOut_each = char(batchJobs.outputPath(xxx));
+    if isempty(pOut_each)
+        pOut_each = inputFolder;
     end
+    if ~isfolder(pOut_each)
+        mkdir(pOut_each);
+    end
+    pOut_each = [pOut_each,filesep];
     save([pOut_each,name,'_AQuA2.mat'], 'res','-v7.3', '-nocompression');   
 
     %% FeatureTable
@@ -446,5 +441,161 @@ for xxx = 1:numel(files)
             end
         end
     end
+end
+
+function batchJobs = readBatchJobs(cfgFile)
+% Read one input job per batch.csv row. Empty outputPath uses input folder.
+if ~isfile(cfgFile)
+    error('aqua_cmd_batch:MissingBatchConfig', ...
+        'Cannot find batch configuration file: %s',cfgFile);
+end
+
+batchJobs = readtable(cfgFile,'TextType','string');
+requiredColumns = {'inputPath','outputPath','preset','cellMaskPath','landmarkMaskPath'};
+missingColumns = requiredColumns(~ismember(requiredColumns,batchJobs.Properties.VariableNames));
+if ~isempty(missingColumns)
+    error('aqua_cmd_batch:InvalidBatchConfig', ...
+        'batch.csv must contain columns: %s. Missing: %s', ...
+        strjoin(requiredColumns,', '),strjoin(missingColumns,', '));
+end
+batchJobs = batchJobs(:,requiredColumns);
+batchJobs.inputPath = strtrim(string(batchJobs.inputPath));
+batchJobs.outputPath = strtrim(string(batchJobs.outputPath));
+batchJobs.cellMaskPath = strtrim(string(batchJobs.cellMaskPath));
+batchJobs.landmarkMaskPath = strtrim(string(batchJobs.landmarkMaskPath));
+batchJobs = batchJobs(~ismissing(batchJobs.inputPath) & batchJobs.inputPath ~= "",:);
+if isempty(batchJobs)
+    return
+end
+
+batchJobs.preset = str2double(string(batchJobs.preset));
+if any(~isfinite(batchJobs.preset) | batchJobs.preset < 1 | batchJobs.preset ~= round(batchJobs.preset))
+    error('aqua_cmd_batch:InvalidPreset', ...
+        'Every preset in batch.csv must be a positive integer.');
+end
+for row = 1:height(batchJobs)
+    batchJobs.inputPath(row) = resolveExistingPath(batchJobs.inputPath(row),cfgFile,'input');
+    [~,~,extension] = fileparts(batchJobs.inputPath(row));
+    if ~any(strcmpi(extension,{'.tif','.tiff','.mat'}))
+        error('aqua_cmd_batch:UnsupportedInputFile', ...
+            'Unsupported input file in batch.csv: %s',batchJobs.inputPath(row));
+    end
+    batchJobs.outputPath(row) = resolveOutputPath(batchJobs.outputPath(row),cfgFile);
+end
+end
+
+function batchJobs = collectFolderJobs(inputFolder)
+inputFolder = char(inputFolder);
+if ~isfolder(inputFolder)
+    error('aqua_cmd_batch:InputFolderNotFound', ...
+        'Input folder does not exist: %s',inputFolder);
+end
+files = [dir(fullfile(inputFolder,'**','*.tif')); ...
+         dir(fullfile(inputFolder,'**','*.tiff')); ...
+         dir(fullfile(inputFolder,'**','*.mat'))];
+if ~isempty(files)
+    files = files(~endsWith({files.name},'_AQuA2.mat','IgnoreCase',true));
+end
+inputPaths = string(fullfile({files.folder},{files.name}))';
+nFiles = numel(inputPaths);
+batchJobs = table(inputPaths,repmat("",nFiles,1),ones(nFiles,1), ...
+    repmat("",nFiles,1),repmat("",nFiles,1), ...
+    'VariableNames',{'inputPath','outputPath','preset','cellMaskPath','landmarkMaskPath'});
+end
+
+function bd = addBatchRegionFile(bd,regionPath,label,opts,cfgFile)
+regionPath = strtrim(string(regionPath));
+if ismissing(regionPath) || regionPath == ""
+    return
+end
+
+regionPath = resolveExistingPath(regionPath,cfgFile,'region');
+[~,~,extension] = fileparts(regionPath);
+switch lower(extension)
+    case '.mat'
+        loadedRegion = load(regionPath,'bd0');
+        if ~isfield(loadedRegion,'bd0')
+            error('aqua_cmd_batch:InvalidRegionMat', ...
+                'Region MAT file must contain variable "bd0": %s',regionPath);
+        end
+        bd(label) = loadedRegion.bd0;
+    case {'.tif','.tiff'}
+        if opts.sz(3) ~= 1
+            error('aqua_cmd_batch:TiffMaskFor3D', ...
+                'TIFF region masks are supported for 2-D+time data only. Use a bd0 MAT file for: %s',regionPath);
+        end
+        bd(label) = tiffMaskToRegions(regionPath,opts);
+    otherwise
+        error('aqua_cmd_batch:UnsupportedRegionFile', ...
+            'Unsupported region file "%s". Use a .mat, .tif, or .tiff file.',regionPath);
+end
+end
+
+function resolvedPath = resolveExistingPath(pathValue,cfgFile,pathKind)
+% Relative paths are interpreted relative to the folder containing batch.csv.
+resolvedPath = char(pathValue);
+if ~isfile(resolvedPath) && ~isAbsolutePath(resolvedPath)
+    resolvedPath = fullfile(fileparts(cfgFile),resolvedPath);
+end
+if ~isfile(resolvedPath)
+    error('aqua_cmd_batch:FileNotFound', ...
+        'Cannot find %s file: %s',pathKind,pathValue);
+end
+end
+
+function outputPath = resolveOutputPath(outputPath,cfgFile)
+if ismissing(outputPath) || outputPath == ""
+    outputPath = "";
+    return
+end
+outputPath = char(outputPath);
+if ~isfolder(outputPath) && ~isAbsolutePath(outputPath)
+    outputPath = fullfile(fileparts(cfgFile),outputPath);
+end
+outputPath = string(outputPath);
+end
+
+function tf = isAbsolutePath(pathValue)
+pathValue = string(pathValue);
+tf = startsWith(pathValue,"\\") || ~isempty(regexp(char(pathValue),'^[A-Za-z]:[\\/]','once'));
+end
+
+function bd0 = tiffMaskToRegions(regionPath,opts)
+rawMask = imread(regionPath);
+if ndims(rawMask) == 3
+    rawMask = max(rawMask,[],3);  % Accept RGB mask images.
+end
+if ~ismatrix(rawMask)
+    error('aqua_cmd_batch:InvalidTiffMask', ...
+        'TIFF mask must contain one two-dimensional image: %s',regionPath);
+end
+
+mask = rawMask ~= 0;  % Non-zero pixels are included in the region.
+targetSize = opts.sz(1:2);
+fullSize = targetSize + 2*opts.regMaskGap;
+if isequal(size(mask),targetSize)
+    % Mask is already in AQuA2 working coordinates.
+elseif isequal(size(mask),fullSize)
+    gap = opts.regMaskGap;
+    mask = mask(gap+1:end-gap,gap+1:end-gap);
+else
+    error('aqua_cmd_batch:MaskSizeMismatch', ...
+        ['TIFF mask size is [%d %d]; expected image size [%d %d] or ' ...
+         'uncropped size [%d %d]: %s'], ...
+        size(mask,1),size(mask,2),targetSize,fullSize,regionPath);
+end
+
+components = bwconncomp(mask,8);
+if components.NumObjects == 0
+    warning('aqua_cmd_batch:EmptyTiffMask', ...
+        'TIFF region mask has no non-zero pixels: %s',regionPath);
+end
+bd0 = cell(components.NumObjects,1);
+for componentIndex = 1:components.NumObjects
+    pixels = components.PixelIdxList{componentIndex};
+    componentMask = false(targetSize);
+    componentMask(pixels) = true;
+    bd0{componentIndex} = {bwboundaries(componentMask),pixels,'imported','None'};
+end
 end
 

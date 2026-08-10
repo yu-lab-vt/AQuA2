@@ -1,8 +1,8 @@
-function [opts,optsInfo,optsName,cfg] = parseParam_for_batch(cfgNum,~,cfgFile)
+function [opts,optsInfo,optsName,cfg] = parseParam_for_batch(presetNum,~,cfgFile)
 %GETPARAM read parameter configuration file
 
-if ~exist('cfgNum','var')
-    cfgNum = 1;
+if ~exist('presetNum','var')
+    presetNum = 1;
 end
 
 if ~exist('cfgFile','var')
@@ -13,31 +13,38 @@ opts = [];
 optsInfo = [];
 optsName = [];
 
-cfg = readtable(cfgFile);
+cfg = readtable(cfgFile,'TextType','string');
 % cfg = cfg(2:end,:);
 
 % remove empty lines
-cfg = cfg(~cellfun(@isempty,cfg.Name),:);
+cfg = cfg(~ismissing(cfg.Name) & strtrim(string(cfg.Name)) ~= "",:);
 
-vName = cfg{:,2};
+presetName = sprintf('Preset%d',presetNum);
+parameterColumn = presetName;
+if ~ismember(parameterColumn,cfg.Properties.VariableNames)
+    legacyName = sprintf('File%d',presetNum);
+    if ismember(legacyName,cfg.Properties.VariableNames)
+        parameterColumn = legacyName;
+    else
+        error('util:parseParam_for_batch:MissingPreset', ...
+            'Cannot find preset column "%s" in %s.',presetName,cfgFile);
+    end
+end
+vName = string(cfg{:,2});
 
-val0 = cfg{:,4+cfgNum-1};
+val0 = cfg.(parameterColumn);
 
 for ii=1:numel(vName)
     tmp = val0(ii);
     if iscell(tmp)
         tmp = tmp{1};
     end
-    if ischar(tmp)
+    if ischar(tmp) || isstring(tmp)
         tmp = str2double(tmp);
     end
-    opts.(vName{ii}) = tmp;
+    opts.(char(vName(ii))) = tmp;
 end
 
 end
-
-
-
-
 
 

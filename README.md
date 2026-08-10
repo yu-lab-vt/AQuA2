@@ -94,11 +94,12 @@ We recommend MATLAB versions later than 2022b.
 For 3D imaging data, we recommend to use MATLAB 2022b.
 
 ## MATLAB Without GUI
-### Use aqua_batch.m file
-1. Double click `aqua_batch.m` file.
-2. Set the folder path 'pIn', and for each target dataset, set the parameters in `AQuA2/cfg/parameters_for_batch.csv`. Each dataset is corresponding to one parameter setting.
-3. Run the file.
-4. The output files will be saved in subfolders of 'pOut'.
+### Use aqua_cmd_batch.m file
+1. Set presets in `cfg/parameters_for_batch.csv` (`Preset1`, `Preset2`, ...).
+2. Choose one input mode in `aqua_cmd_batch.m`:
+   - Set `pIn` to a folder to recursively process its supported input files with `Preset1`.
+   - Leave `pIn` empty and add one row per input to `cfg/batch.csv` (`inputPath`, optional `outputPath`, `preset`, optional `cellMaskPath`, and optional `landmarkMaskPath`).
+3. Run the file. An empty `outputPath` saves results beside the input file.
 
 ## Fiji plugin
 - Fiji plugin version of AQuA can be found **[here](https://github.com/yu-lab-vt/AQuA2-Fiji)**.

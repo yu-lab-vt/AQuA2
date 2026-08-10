@@ -1,4 +1,4 @@
-Name,Variable,Type,File1,File2,File3,File4,File5,File6,File7,File8,File9,File10,File11,File12
+Name,Variable,Type,Preset1,Preset2,Preset3,Preset4,Preset5,Preset6,Preset7,Preset8,Preset9,Preset10,Preset11,Preset12
 Registration mode,registrateCorrect,preprocessing,1,1,1,1,1,1,1,1,1,1,1,1
 Bleach correction mode,bleachCorrect,preprocessing,1,1,1,1,1,1,1,1,1,1,1,1
 Median filter radius (For salt and pepper noise),medSmo,preprocessing,0,0,0,0,0,0,0,0,0,0,0,0
