@@ -37,14 +37,25 @@ function regionSL(~,~,f,op,lbl)
             save(path0,'bd0');
         end
     else
-       [file,path] = uigetfile({'*.mat;*.zip'},'Choose Region file',opts.filePath1); 
+       [file,path] = uigetfile( ...
+           {'*.mat;*.zip;*.tif;*.tiff','Region files (*.mat, *.zip, *.tif, *.tiff)'; ...
+            '*.mat','AQuA2 region files (*.mat)'; ...
+            '*.zip','ImageJ ROI archives (*.zip)'; ...
+            '*.tif;*.tiff','Binary mask images (*.tif, *.tiff)'}, ...
+           'Choose Region file',opts.filePath1);
        if ~isnumeric([path,file])
            [~,~,ext] = fileparts(file);
-           if(strcmp(ext,'.mat'))
+           if strcmpi(ext,'.mat')
                loadContent = load([path,file],'bd0');
                bd(lbl) = loadContent.bd0;
                setappdata(f,'bd',bd);
                ui.movStep(f,[],[],1);
+           elseif any(strcmpi(ext,{'.tif','.tiff'}))
+               [bd,nAdded] = importTiffMask(path,file,bd,opts,lbl);
+               if nAdded > 0
+                   setappdata(f,'bd',bd);
+                   ui.movStep(f,[],[],1);
+               end
            else
                prompt = {'Pixel number of growing ROIs (0: no grow):'};
                dlgtitle = 'Input';
@@ -103,6 +114,74 @@ function regionSL(~,~,f,op,lbl)
        end
     end 
 end
+
+function [bd,nAdded] = importTiffMask(path,file,bd,opts,lbl)
+% Import a white-on-black TIFF as one region per connected component.
+% A full-size source image is cropped by regMaskGap when necessary.
+rawMask = imread(fullfile(path,file));
+if ndims(rawMask) == 3
+    rawMask = max(rawMask,[],3);  % support RGB masks without changing white foreground
+end
+if ~ismatrix(rawMask)
+    error('ui:mov:regionSL:InvalidTiffMask', ...
+        'The TIFF mask must contain one two-dimensional image.');
+end
+
+mask = rawMask > min(rawMask(:));
+targetSize = opts.sz(1:2);
+gap = opts.regMaskGap;
+fullSize = targetSize + 2*gap;
+if isequal(size(mask), targetSize)
+    % The TIFF is already in the AQuA2 working coordinate system.
+elseif isequal(size(mask), fullSize)
+    mask = mask(gap+1:end-gap,gap+1:end-gap);
+else
+    error('ui:mov:regionSL:MaskSizeMismatch', ...
+        ['TIFF mask size is [%d %d]; expected either the AQuA2 image size ' ...
+        '[%d %d] or the uncropped size [%d %d].'], ...
+        size(mask,1),size(mask,2),targetSize,fullSize);
+end
+
+components = bwconncomp(mask,8);
+nAdded = components.NumObjects;
+if nAdded == 0
+    warning('ui:mov:regionSL:EmptyTiffMask', ...
+        'The selected TIFF contains no non-background pixels.');
+    return
+end
+
+if bd.isKey(lbl)
+    bd0 = bd(lbl);
+else
+    bd0 = cell(0,1);
+end
+if bd.isKey('roi')
+    ROIinfo = bd('roi');
+else
+    ROIinfo = cell(0,1);
+end
+
+nExisting = numel(bd0);
+nExistingRoi = numel(ROIinfo);
+for componentIndex = 1:nAdded
+    pix = components.PixelIdxList{componentIndex};
+    region = cell(1,4);
+    % BWCONNCOMP indices are in the same 2-D coordinates as the movie.
+    componentMask = false(targetSize);
+    componentMask(pix) = true;
+    region{1} = bwboundaries(componentMask);
+    region{2} = pix;
+    region{3} = 'imported';
+    region{4} = 'None';
+    bd0{nExisting + componentIndex} = region;
+
+    ROIinfo{nExistingRoi + componentIndex}.pix = pix;
+    ROIinfo{nExistingRoi + componentIndex}.name = num2str(nExisting + componentIndex);
+end
+bd(lbl) = bd0;
+bd('roi') = ROIinfo;
+end
+
 function pixGrow = growRegion(pix,sz,nGrow)
     if(nGrow <= 0)
         pixGrow = pix;
