@@ -97,7 +97,7 @@ For 3D imaging data, we recommend to use MATLAB 2022b.
 ### Use aqua_cmd_batch.m file
 1. Set presets in `cfg/parameters_for_batch.csv` (`Preset1`, `Preset2`, ...).
 2. Choose one input mode in `aqua_cmd_batch.m`:
-   - Set `pIn` to a folder to recursively process its supported input files with `Preset1`.
+   - Set `pIn` to a folder to recursively process `.tif`, `.tiff`, `.avi` (2D+t), and `.mat` inputs with `Preset1`.
    - Leave `pIn` empty and add one row per input to `cfg/batch.csv` (`inputPath`, optional `outputPath`, `preset`, optional `cellMaskPath`, and optional `landmarkMaskPath`).
 3. Run the file. An empty `outputPath` saves results beside the input file.
 

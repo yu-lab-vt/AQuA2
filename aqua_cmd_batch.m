@@ -476,7 +476,7 @@ end
 for row = 1:height(batchJobs)
     batchJobs.inputPath(row) = resolveExistingPath(batchJobs.inputPath(row),cfgFile,'input');
     [~,~,extension] = fileparts(batchJobs.inputPath(row));
-    if ~any(strcmpi(extension,{'.tif','.tiff','.mat'}))
+    if ~any(strcmpi(extension,{'.tif','.tiff','.avi','.mat'}))
         error('aqua_cmd_batch:UnsupportedInputFile', ...
             'Unsupported input file in batch.csv: %s',batchJobs.inputPath(row));
     end
@@ -492,6 +492,7 @@ if ~isfolder(inputFolder)
 end
 files = [dir(fullfile(inputFolder,'**','*.tif')); ...
          dir(fullfile(inputFolder,'**','*.tiff')); ...
+         dir(fullfile(inputFolder,'**','*.avi')); ...
          dir(fullfile(inputFolder,'**','*.mat'))];
 if ~isempty(files)
     files = files(~endsWith({files.name},'_AQuA2.mat','IgnoreCase',true));

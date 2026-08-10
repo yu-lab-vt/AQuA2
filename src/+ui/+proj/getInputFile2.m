@@ -11,7 +11,8 @@ catch
     p0 = '.';
 end
 
-[FileName,PathName] = uigetfile({'*.tif;*.mat;*.tiff'},'Choose movie',p0);
+[FileName,PathName] = uigetfile({'*.tif;*.tiff;*.avi;*.mat', ...
+    'Movie files (*.tif, *.tiff, *.avi, *.mat)'},'Choose movie',p0);
 if exist('./cfg','dir')
     save('./cfg/DefaultFolder.mat','PathName');
 end

@@ -47,7 +47,7 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
 
     % read data
     fprintf('Reading data\n');
-    if strcmp(ext1,'.mat')
+    if strcmpi(ext1,'.mat')
         file = load([p1,filesep,f1]);
         headers = fieldnames(file);
         dat1 = single(file.(headers{1}));
@@ -63,11 +63,10 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
             BitDepth2 = [];
         end
     else
-        % [dat1,BitDepth1] = io.readTiffSeq([p1,filesep,f1]);
-        [dat1,BitDepth1] = io.readTiffSeq([p1,filesep,f1], [], @updateProgress);
+        [dat1,BitDepth1] = read2DTimeSeries([p1,filesep,f1],ext1,@updateProgress);
         if(~isempty(f2))
-            % [dat2,BitDepth2] = io.readTiffSeq([p2,filesep,f2]);
-            [dat2,BitDepth2] = io.readTiffSeq([p2,filesep,f2], [], @updateProgress);
+            [~,~,ext2] = fileparts(f2);
+            [dat2,BitDepth2] = read2DTimeSeries([p2,filesep,f2],ext2,@updateProgress);
         else
             dat2 = [];
             BitDepth2 = [];
@@ -110,4 +109,16 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
     [H,W,L,T] = size(dat1);
     opts.sz = [H,W,L,T];
     opts.BitDepth = BitDepth1;
+end
+
+function [dat,bitDepth] = read2DTimeSeries(fileName,extension,progressCallback)
+switch lower(extension)
+    case '.avi'
+        [dat,bitDepth] = io.readAvi(fileName);
+    case {'.tif','.tiff'}
+        [dat,bitDepth] = io.readTiffSeq(fileName,[],progressCallback);
+    otherwise
+        error('burst:prep1:Unsupported2DTimeSeries', ...
+            'Unsupported 2-D+time input format: %s',extension);
+end
 end
