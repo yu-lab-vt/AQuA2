@@ -46,7 +46,7 @@ function [dat1,dat2,opts] = prep1(p1,f1,p2,f2,~,opts,ff)
 
 
     % read data
-    fprintf('Reading data\n');
+    fprintf('Reading data...\n');
     if strcmpi(ext1,'.mat')
         file = load([p1,filesep,f1]);
         headers = fieldnames(file);

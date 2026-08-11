@@ -10,14 +10,14 @@ function [riseLst,datR,evtLst,seLst] = se2evtTop(dF,seLst,svLst,seLabel,majorInf
     end
     
     % super event to events
-    fprintf('Detecting events ...\n')
+%     fprintf('Detecting events ...\n')
     riseLst = cell(0);
     datR = zeros(H,W,L,T,'uint8');    % brightness for overlay
     datL = zeros(H,W,L,T,'uint16');   % evtMap
     nEvt = 0;
     for nn =  1:numel(seLst)
         se0 = seLst{nn};
-        fprintf('SE %d \n',nn)
+%         fprintf('SE %d \n',nn)
         if exist('ff','var')&& ~isempty(ff)
             waitbar(0.1+nn/numel(seLst)*0.9,ff);
         end

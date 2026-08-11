@@ -14,7 +14,7 @@ function [ftsLst,dffMat,dMat,dffAlignedMat] = getFeaturesTop(dat,evtLst,opts,ff)
     muPerPix = opts.spatialRes;
     
     % impute events
-    fprintf('Imputing ...\n')
+%     fprintf('Imputing ...\n')
     datx = dat;
     datx(evtMap>0) = nan;
     dat = reshape(dat,[],T);

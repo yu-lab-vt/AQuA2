@@ -32,7 +32,7 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                     eval([cmdSel0,';']);
                     valid(ftsCnt) = true;
                 catch
-                    fprintf('Feature "%s" not selected\n',ftsName0)
+%                     fprintf('Feature "%s" not selected\n',ftsName0)
                     x = nan(nEvt,1);
                 end
                 ftsTb(ftsCnt,:) = num2cell(reshape(x,1,[]));
@@ -47,7 +47,7 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                     ftsTb(ftsCnt,:) = num2cell(reshape(x,1,[]));
                     valid(ftsCnt) = true;
                 catch
-                    fprintf('Feature "%s" not selected\n',ftsName0)
+%                     fprintf('Feature "%s" not selected\n',ftsName0)
 %                     ftsTb(ftsCnt,:) = nan;
                 end    
                 ftsName1 = [ftsName0,' - ',dixx{xxDi}];
@@ -64,7 +64,7 @@ function featureTable = getFeatureTable00(fts,lmkLst,f)
                 end
                 valid(ftsCnt) = true;
             catch
-                fprintf('Feature "%s" not selected\n',ftsName0)
+%                 fprintf('Feature "%s" not selected\n',ftsName0)
                 ftsTb(ftsCnt,:) = num2cell(nan(1,nEvt));
             end
             ftsName1 = ftsName0;
