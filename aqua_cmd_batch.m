@@ -1,5 +1,9 @@
-%% setup
-% 
+function aqua_cmd_batch(batchConfigFile,parameterConfigFile)
+%AQUA_CMD_BATCH Run AQuA2 batch processing.
+%   AQUA_CMD_BATCH() uses cfg/batch.csv and cfg/parameters_for_batch.csv.
+%   AQUA_CMD_BATCH(BATCHCONFIGFILE,PARAMETERCONFIGFILE) uses the supplied
+%   CSV files instead. Pass [] for either argument to use its default.
+%
 % Read Me:
 % Set pIn to a folder to recursively process every supported input file with
 % Preset1. Leave pIn empty to use cfg/batch.csv instead.
@@ -10,17 +14,24 @@
 
 close all;
 clc;
-clearvars
 startup;  % initialize
 pIn = '';  % Input folder. Leave empty to use cfg/batch.csv.
 
-batchSet.propMetric = true;    % whether extract propagation-related features
-batchSet.networkFeatures = true; % whether extract network features
+if nargin < 1 || isempty(batchConfigFile)
+    batchConfigFile = fullfile('cfg','batch.csv');
+end
+if nargin < 2 || isempty(parameterConfigFile)
+    parameterConfigFile = fullfile('cfg','parameters_for_batch.csv');
+end
 
-batchSet.outputMovie = true;    % whether to output movie with detection overlay
+batchSet.propMetric = false;    % whether extract propagation-related features
+batchSet.networkFeatures = false; % whether extract network features
+batchSet.outputMovie = false;    % whether to output movie with detection overlay
 batchSet.outputFeatureTable = true; % whether to output feature table
-batchSet.batchConfigFile = fullfile('cfg','batch.csv');
-batchSet.parameterConfigFile = fullfile('cfg','parameters_for_batch.csv');
+
+batchSet.batchConfigFile = char(batchConfigFile);
+batchSet.parameterConfigFile = char(parameterConfigFile);
+
 % In batch.csv, fill cellMaskPath and landmarkMaskPath for each file.
 % Supported formats: AQuA2 region MAT files (variable bd0) and binary TIFFs.
 if strlength(string(pIn)) > 0
@@ -31,11 +42,15 @@ end
 if isempty(batchJobs)
     error('aqua_cmd_batch:NoInputFiles','No input files were found.');
 end
-    
-for xxx = 1:height(batchJobs)
+
+nJobs = height(batchJobs);
+fprintf('AQuA2 batch: %d file(s) queued.\n',nJobs);
+for xxx = 1:nJobs
     inputPath = char(batchJobs.inputPath(xxx));
     [inputFolder,inputName,inputExtension] = fileparts(inputPath);
     f1 = [inputName,inputExtension];
+    fileTimer = tic;
+    fprintf('[%d/%d] Processing: %s\n',xxx,nJobs,inputPath);
     %% load setting (you can also manually modify setting here)
     opts = util.parseParam_for_batch(batchJobs.preset(xxx),[],batchSet.parameterConfigFile);
     opts.singleChannel = true;      % batch only leverages single channel for simplicity
@@ -46,7 +61,6 @@ for xxx = 1:height(batchJobs)
     opts.networkFeatures = batchSet.networkFeatures;
 
     %% load data
-    disp('Loading...');
     [datOrg1,datOrg2,opts] = burst.prep1(inputFolder,f1,inputFolder,[],[],opts);
     [H,W,L,T] = size(datOrg1);
     opts.singleChannel = isempty(datOrg2);
@@ -300,7 +314,6 @@ for xxx = 1:height(batchJobs)
     ov = containers.Map('UniformValues',0);
     ov('None') = [];
     ovName = 'Events';
-    fprintf('Overlay for events...\n')
     ov1 = ui.over.getOv([],evt1,opts.sz,datR1,1);
     ov1.name = ovName;
     ov1.colorCodeType = {'Random'};
@@ -441,6 +454,9 @@ for xxx = 1:height(batchJobs)
             end
         end
     end
+    fprintf('[%d/%d] Done in %.1f s. Output: %s\n', ...
+        xxx,nJobs,toc(fileTimer),pOut_each);
+end
 end
 
 function batchJobs = readBatchJobs(cfgFile)
@@ -450,7 +466,9 @@ if ~isfile(cfgFile)
         'Cannot find batch configuration file: %s',cfgFile);
 end
 
-batchJobs = readtable(cfgFile,'TextType','string');
+% Explicit comma delimiter prevents path separators in inputPath from being
+% mistaken for the CSV delimiter during automatic import detection.
+batchJobs = readtable(cfgFile,'TextType','string','Delimiter',',');
 requiredColumns = {'inputPath','outputPath','preset','cellMaskPath','landmarkMaskPath'};
 missingColumns = requiredColumns(~ismember(requiredColumns,batchJobs.Properties.VariableNames));
 if ~isempty(missingColumns)

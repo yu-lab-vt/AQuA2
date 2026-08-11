@@ -99,7 +99,8 @@ For 3D imaging data, we recommend to use MATLAB 2022b.
 2. Choose one input mode in `aqua_cmd_batch.m`:
    - Set `pIn` to a folder to recursively process `.tif`, `.tiff`, `.avi` (2D+t), and `.mat` inputs with `Preset1`.
    - Leave `pIn` empty and add one row per input to `cfg/batch.csv` (`inputPath`, optional `outputPath`, `preset`, optional `cellMaskPath`, and optional `landmarkMaskPath`).
-3. Run the file. An empty `outputPath` saves results beside the input file.
+3. Run `aqua_cmd_batch`. An empty `outputPath` saves results beside the input file.
+   To use differently named CSV files, call `aqua_cmd_batch(batchCsvPath, parameterCsvPath)`; pass `[]` for either path to retain its default.
 
 ## Fiji plugin
 - Fiji plugin version of AQuA can be found **[here](https://github.com/yu-lab-vt/AQuA2-Fiji)**.
