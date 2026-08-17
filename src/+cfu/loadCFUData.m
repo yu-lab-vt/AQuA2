@@ -1,25 +1,41 @@
 % 08/27/2025 added: load CFU data
 
-function loadCFUData(~, ~, fCFU, fOut)
-    % Open file chooser
-    [filename, pathname] = uigetfile('*.mat', 'Select CFU Data File');
-    if isequal(filename, 0)
-        return; % User cancelled
+function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
+%loadCFUData Load CFU results selected by the user or supplied by a caller.
+
+    didLoad = false;
+    errorMessage = '';
+    if nargin < 5 || isempty(loadedData)
+        [filename, pathname] = uigetfile('*.mat', 'Select CFU Data File');
+        if isequal(filename, 0)
+            return;
+        end
+        fullpath = fullfile(pathname, filename);
+        try
+            loadedData = load(fullpath);
+        catch ME
+            errorMessage = ME.message;
+            errordlg(sprintf('Error loading file: %s', errorMessage), 'Load Error');
+            return;
+        end
     end
 
-    % Load .mat file
-    fullpath = fullfile(pathname, filename);
-    try
-        loadedData = load(fullpath);
+    if ~isstruct(loadedData) || ~isscalar(loadedData)
+        errorMessage = 'CFU data must be supplied as a scalar structure.';
+        errordlg(errorMessage, 'Load Error');
+        return;
+    end
 
-        % Required fields according to the format produced by output.m/CFU pipeline
-        requiredFields = {'cfuInfo1', 'cfuOpts'};
+    try
+        % cfuOpts is optional for compatibility with older result files.
+        requiredFields = {'cfuInfo1'};
         opts = getappdata(fOut, 'opts');
 
         % Validate basic structure
         hasAllFields = all(isfield(loadedData, requiredFields));
         if ~hasAllFields
-            errordlg('Selected file does not contain valid CFU data.', 'Invalid File');
+            errorMessage = 'Selected file does not contain valid CFU data.';
+            errordlg(errorMessage, 'Invalid File');
             return;
         end
 
@@ -230,8 +246,12 @@ function loadCFUData(~, ~, fCFU, fOut)
         cfu.updtCFUTable(fCFU);
         ui.updtCFUint([], [], fCFU, true);
         cfu.restoreSpatialBoundary(fCFU);
+        didLoad = true;
 
     catch ME
-        errordlg(sprintf('Error loading file: %s', ME.message), 'Load Error');
+        errorMessage = ME.message;
+        warning('cfu:LoadCFUDataFailed', '%s', ...
+            getReport(ME, 'basic', 'hyperlinks', 'off'));
+        errordlg(sprintf('Error loading file: %s', errorMessage), 'Load Error');
     end
 end
