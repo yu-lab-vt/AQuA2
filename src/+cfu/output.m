@@ -36,8 +36,12 @@ function output(~,~,fCFU,f)
     if isappdata(fCFU,'spatialBoundary')
         spatialBoundary = getappdata(fCFU,'spatialBoundary');
     end
+    manualCFUShapes = [];
+    if isappdata(fCFU,'manualCFUShapes')
+        manualCFUShapes = getappdata(fCFU,'manualCFUShapes');
+    end
     save([outputPath,'.mat'],'cfuInfo1','cfuInfo2','cfuRelation', ...
-        'cfuGroupInfo','cfuOpts','datPro','favCFUList','spatialBoundary');
+        'cfuGroupInfo','cfuOpts','datPro','favCFUList','spatialBoundary','manualCFUShapes');
 
     % Update 2026-08-07: export favorite CFU event summaries as an English-only Excel table.
     if isempty(favCFUList)

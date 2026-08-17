@@ -4,6 +4,8 @@ function workSpace(~,~,fCFU,f)
     assignin('base', 'cfuInfo2', getappdata(fCFU,'cfuInfo2'));
     assignin('base', 'cfuRelation', getappdata(fCFU,'relation'));
     assignin('base', 'cfuGroupInfo', getappdata(fCFU,'groupInfo'));
+    if isappdata(fCFU,'manualCFUShapes')
+        assignin('base', 'manualCFUShapes', getappdata(fCFU,'manualCFUShapes'));
+    end
     msgbox('CFU data sent successfully!', 'Success');
 end
-

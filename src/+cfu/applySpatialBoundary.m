@@ -19,26 +19,58 @@ function didApply = applySpatialBoundary(fCFU)
         return;
     end
 
-    cfuInfo1 = getappdata(fCFU, 'cfuInfo1');
-    if ~iscell(cfuInfo1) || size(cfuInfo1, 2) < 3 || isempty(cfuInfo1)
-        return;
-    end
-
     height = fh.opts.sz(1);
     width = fh.opts.sz(2);
     depth = fh.opts.sz(3);
-    nCFU = size(cfuInfo1, 1);
-    centres = zeros(nCFU, 2);
-    invalidFootprints = false(nCFU, 1);
-    for cfuIndex = 1:nCFU
-        [centres(cfuIndex, :), isValid] = getCFUCentre( ...
-            cfuInfo1{cfuIndex, 3}, height, width, depth);
-        invalidFootprints(cfuIndex) = ~isValid;
-    end
-    if any(invalidFootprints)
+    ax = getSpatialAxes(fCFU);
+    isYNormal = isempty(ax) || strcmpi(ax.YDir, 'normal');
+
+    cfuInfo1 = getappdata(fCFU, 'cfuInfo1');
+    [cfuInfo1, cfuLabels, isValid] = classifyCFUs(cfuInfo1, xData, yData, ...
+        classA, classB, height, width, depth, isYNormal);
+    if ~isValid
         warning('cfu:InvalidCFUFootprint', ...
-            'Some CFU footprints are invalid, so no boundary-based classifications were changed.');
+            'Some channel 1 CFU footprints are invalid, so no boundary-based classifications were changed.');
         return;
+    end
+    setappdata(fCFU, 'cfuInfo1', cfuInfo1);
+    setappdata(fCFU, 'spatialClassLabels', cfuLabels);
+
+    % Apply the same saved line to channel 2 when present.  This is needed
+    % for manually drawn Ch2 CFUs and does not alter the existing Ch1 API.
+    if isappdata(fCFU, 'cfuInfo2')
+        cfuInfo2 = getappdata(fCFU, 'cfuInfo2');
+        if iscell(cfuInfo2) && ~isempty(cfuInfo2)
+            [cfuInfo2, cfuLabels2, isValid2] = classifyCFUs(cfuInfo2, xData, yData, ...
+                classA, classB, height, width, depth, isYNormal);
+            if isValid2
+                setappdata(fCFU, 'cfuInfo2', cfuInfo2);
+                setappdata(fCFU, 'spatialClassLabels2', cfuLabels2);
+            else
+                warning('cfu:InvalidCFUFootprint', ...
+                    'Some channel 2 CFU footprints are invalid, so channel 2 classifications were not changed.');
+            end
+        end
+    end
+    didApply = true;
+end
+
+function [cfuInfo, cfuLabels, isValid] = classifyCFUs(cfuInfo, xData, yData, ...
+        classA, classB, height, width, depth, isYNormal)
+    cfuLabels = [];
+    isValid = iscell(cfuInfo) && size(cfuInfo, 2) >= 3 && ~isempty(cfuInfo);
+    if ~isValid
+        return;
+    end
+    nCFU = size(cfuInfo, 1);
+    centres = zeros(nCFU, 2);
+    for cfuIndex = 1:nCFU
+        [centres(cfuIndex, :), isFootprintValid] = getCFUCentre( ...
+            cfuInfo{cfuIndex, 3}, height, width, depth);
+        if ~isFootprintValid
+            isValid = false;
+            return;
+        end
     end
 
     [lineX, order] = sort(xData);
@@ -47,21 +79,16 @@ function didApply = applySpatialBoundary(fCFU)
     lineX = [-extension, lineX, extension];
     lineY = [lineY(1), lineY, lineY(end)];
     yLine = interp1(lineX, lineY, centres(:, 1), 'linear');
-    ax = getSpatialAxes(fCFU);
-    if isempty(ax) || strcmpi(ax.YDir, 'normal')
-        isAbove = centres(:, 2) > yLine;
-    else
+    isAbove = centres(:, 2) > yLine;
+    if ~isYNormal
         isAbove = centres(:, 2) < yLine;
     end
 
     cfuLabels = repmat(classB, nCFU, 1);
     cfuLabels(isAbove) = classA;
-    % Column 10 contains CFU event metadata in the main GUI. Keep it
-    % intact and store the spatial class in the next column.
-    cfuInfo1(:, 11) = num2cell(cfuLabels);
-    setappdata(fCFU, 'cfuInfo1', cfuInfo1);
-    setappdata(fCFU, 'spatialClassLabels', cfuLabels);
-    didApply = true;
+    % Column 10 contains gray-event metadata, so the spatial class lives
+    % in column 11 and the manual-CFU flag remains in column 12.
+    cfuInfo(:, 11) = num2cell(cfuLabels);
 end
 
 function [xData, yData, classA, classB, isValid] = getBoundaryData(boundary, imageSize)

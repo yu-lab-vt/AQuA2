@@ -291,14 +291,25 @@ uilabel(bEvtAdd,'Text','Ch2 ID');
 uieditfield(bEvtAdd,'Tag','toolsAddEvt2');
 uibutton(bEvtAdd,'push','Text','Add','ButtonPushedFcn',{@cfu.addCFU,fCFU,2});
 
-% group manager
-bTool2 = uigridlayout(pTool2,'ColumnWidth',{'1x'},'RowHeight',{20,'1x'},'Padding',[0,0,0,0],'RowSpacing',5);
-uilabel(bTool2,'Text','Group Table','BackgroundColor',[0 0.3 0.6],'FontColor','white');
-tb = uitable(bTool2,'Data',zeros(0,4),'Tag','groupTable','RowName',[]);
+% Manual CFU controls and group manager share the lower-right panel.
+% Keeping the manual controls here makes them available without obscuring
+% the existing Favourite table.
+bTool2 = uigridlayout(pTool2,'ColumnWidth',{'1x'},'RowHeight',{75,'1x'}, ...
+    'Padding',[0,0,0,0],'RowSpacing',5);
+pGroupTable = uipanel(bTool2,'BorderType','none');
+pManualCFU = uipanel(bTool2,'Tag','pManualCFU');
+
+bGroupTable = uigridlayout(pGroupTable,'ColumnWidth',{'1x'}, ...
+    'RowHeight',{20,'1x'},'Padding',[0,0,0,0],'RowSpacing',3);
+uilabel(bGroupTable,'Text','Group Table','BackgroundColor',[0 0.3 0.6], ...
+    'FontColor','white');
+tb = uitable(bGroupTable,'Data',zeros(0,4),'Tag','groupTable','RowName',[]);
 tb.ColumnName = {'','Group Index','CFU number in Group','CFU indexes in it'};
 tb.ColumnWidth = {20,92,92,92};
 tb.ColumnEditable = [false,false,false,false];
 tb.CellSelectionCallback = {@cfu.selectGroup,fCFU,fOut};
+
+cfu.manualCFU('addPanel', fCFU, fOut, pManualCFU);
 pTool1.Visible = 'off';
 pTool2.Visible = 'off';
 
@@ -379,6 +390,7 @@ end
 fh.opts = opts;
 
 guidata(fCFU,fh);
+fCFU.WindowKeyPressFcn = @(~, event) cfu.manualCFU('keyPress', fCFU, [], event);
 col = [0.3,0.3,0.7];
 setappdata(fCFU,'col',col);
 
@@ -397,6 +409,9 @@ if(needLoad && ~isempty(getappdata(fOut,'cfuInfo1')))
     setappdata(fCFU,'colorMap1',getappdata(fOut,'colorMap1'));
     setappdata(fCFU,'cols2',getappdata(fOut,'cols2'));
     setappdata(fCFU,'colorMap2',getappdata(fOut,'colorMap2'));
+    if isappdata(fOut,'manualCFUShapes')
+        setappdata(fCFU,'manualCFUShapes',getappdata(fOut,'manualCFUShapes'));
+    end
     if isappdata(fOut,'spatialBoundary')
         setappdata(fCFU,'spatialBoundary',getappdata(fOut,'spatialBoundary'));
     end
@@ -407,6 +422,10 @@ if(needLoad && ~isempty(getappdata(fOut,'cfuInfo1')))
     if isfield(fh,'spatialBoundaryButton')
         fh.spatialBoundaryButton.Enable = 'on';
     end
+    fh.pTool2.Visible = 'on';
+    guidata(fCFU,fh);
+    cfu.manualCFU('restore', fCFU, fOut);
+    cfu.manualCFU('enable', fCFU, fOut);
 end
 
 if(needLoad && ~isempty(getappdata(fOut,'relation')))

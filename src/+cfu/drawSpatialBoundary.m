@@ -220,6 +220,9 @@ function drawSpatialBoundary(button, fCFU, editA, editB)
             setappdata(fCFU, 'spatialClassLabels', cfuLabels);
             setappdata(fCFU, 'spatialBoundary', spatialBoundary);
             setappdata(fCFU, 'spatialBoundaryLine', boundaryLine);
+            % Reuse the central classifier so a second channel, including
+            % manual Ch2 CFUs, receives the same boundary label as Ch1.
+            cfu.applySpatialBoundary(fCFU);
             cleanUpDrawing(true);
             uialert(fCFU, sprintf(['Spatial polyline classification is complete.\n' ...
                 'Upper class (A): %d CFU(s)\nLower class (B): %d CFU(s)\n\n' ...

@@ -41,6 +41,9 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
 
         % Get GUI handle struct
         fh = guidata(fCFU);
+        cfu.manualCFU('clear', fCFU, fOut);
+        fh.manualCFUHandles = {};
+        fh.manualCFUSelected = [0, 0];
         if isfield(fh, 'spatialBoundaryButton')
             fh.spatialBoundaryButton.Enable = 'off';
         end
@@ -50,6 +53,12 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
         fh.minNumCFU.Enable = 'off';
         fh.buttonGroup.Enable = 'off';
         setappdata(fCFU, 'cfuInfo1', loadedData.cfuInfo1);
+        if isfield(loadedData, 'manualCFUShapes')
+            setappdata(fCFU, 'manualCFUShapes', loadedData.manualCFUShapes);
+        else
+            setappdata(fCFU, 'manualCFUShapes', struct('Version', {}, 'Channel', {}, ...
+                'Index', {}, 'Center', {}, 'SemiAxes', {}, 'RotationAngle', {}));
+        end
         cfu.clearSpatialBoundaryLine(fCFU);
         if isfield(loadedData, 'spatialBoundary')
             setappdata(fCFU, 'spatialBoundary', loadedData.spatialBoundary);
@@ -166,6 +175,7 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
 
         % Show tool panel
         fh.pTool1.Visible = 'on';
+        fh.pTool2.Visible = 'on';
 
         % Initialize favorites list
         fh.favCFUs = [];
@@ -246,6 +256,7 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
         cfu.updtCFUTable(fCFU);
         ui.updtCFUint([], [], fCFU, true);
         cfu.restoreSpatialBoundary(fCFU);
+        cfu.manualCFU('restore', fCFU, fOut);
         didLoad = true;
 
     catch ME

@@ -4,6 +4,11 @@ function CFURunGui(~,~,fCFU,f)
     if isfield(fh,'spatialBoundaryButton')
         fh.spatialBoundaryButton.Enable = 'off';
     end
+    % A new automatic detection replaces the CFU list, so stale manual
+    % ellipses must not keep pointing at obsolete local CFU indices.
+    cfu.manualCFU('clear', fCFU, f);
+    fh.manualCFUHandles = {};
+    fh.manualCFUSelected = [0, 0];
     opts = getappdata(f,'opts');
     evtLst1 = getappdata(f, 'evt1');
     fts1 = getappdata(f, 'fts1'); % [Added] Get features for peak times
@@ -367,6 +372,9 @@ function CFURunGui(~,~,fCFU,f)
         rmappdata(fCFU,'groupInfo');
     end
     fh.pTool1.Visible = 'on';
+    fh.pTool2.Visible = 'on';
+    guidata(fCFU,fh);
+    cfu.manualCFU('enable', fCFU, f);
     cfu.updtCFUTable(fCFU);     % 08/27/2025 updated: clear table after rerun
     cfu.updtGrpTable(fCFU,f);
     ui.updtCFUint([],[],fCFU,true);
