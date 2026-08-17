@@ -126,6 +126,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**08/17/2026**
+
+*Important:* The input format of `aqua_cmd_batch.m` has changed. Two modes are designed for different needs. Add more format support and simplify CLI infos.
+
 **08/07/2026:**
 
 Enable 3D display for R2023a+. Add a reset button to allow repetitive trials of preprocessing on Raw data. Fix mask builder UI.
