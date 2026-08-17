@@ -25,12 +25,21 @@ function loadCFUData(~, ~, fCFU, fOut)
 
         % Get GUI handle struct
         fh = guidata(fCFU);
+        if isfield(fh, 'spatialBoundaryButton')
+            fh.spatialBoundaryButton.Enable = 'off';
+        end
 
         % Store loaded data into app data
         fh.pThr.Enable = 'off';
         fh.minNumCFU.Enable = 'off';
         fh.buttonGroup.Enable = 'off';
         setappdata(fCFU, 'cfuInfo1', loadedData.cfuInfo1);
+        cfu.clearSpatialBoundaryLine(fCFU);
+        if isfield(loadedData, 'spatialBoundary')
+            setappdata(fCFU, 'spatialBoundary', loadedData.spatialBoundary);
+        elseif isappdata(fCFU, 'spatialBoundary')
+            rmappdata(fCFU, 'spatialBoundary');
+        end
         if isfield(loadedData, 'cfuInfo2')
             setappdata(fCFU, 'cfuInfo2', loadedData.cfuInfo2);
             fh.pThr.Enable = 'on';
@@ -135,6 +144,9 @@ function loadCFUData(~, ~, fCFU, fOut)
         fh.winSz.Enable        = 'on';
         fh.sldWinSz.Enable     = 'on';
         fh.shift.Enable        = 'on';
+        if isfield(fh, 'spatialBoundaryButton')
+            fh.spatialBoundaryButton.Enable = 'on';
+        end
 
         % Show tool panel
         fh.pTool1.Visible = 'on';
@@ -217,6 +229,7 @@ function loadCFUData(~, ~, fCFU, fOut)
         guidata(fCFU, fh);
         cfu.updtCFUTable(fCFU);
         ui.updtCFUint([], [], fCFU, true);
+        cfu.restoreSpatialBoundary(fCFU);
 
     catch ME
         errordlg(sprintf('Error loading file: %s', ME.message), 'Load Error');

@@ -106,13 +106,7 @@ function updtCFUint(~,~,fCFU,colorRenew)
         % clean all patches only when refreshing the view
         if(opts.singleChannel)
             axNow = fh.mov;
-            types = {'patch','text','line'};
-            for ii=1:numel(types)
-                h00 = findobj(axNow,'Type',types{ii});
-                if ~isempty(h00)
-                    delete(h00);
-                end
-            end
+            removeDisplayAnnotations(axNow);
             
             favLst = fh.favCFUs;
             for ii=1:numel(favLst)
@@ -165,18 +159,9 @@ function updtCFUint(~,~,fCFU,colorRenew)
             fh.ims.im1.CData = flipud(dat1 + colorMap1*fh.sldCol.Value);
         else
             favLst = fh.favCFUs;
-            types = {'patch','text','line'};
             ax1 = fh.movL; ax2 = fh.movR;
-            for ii=1:numel(types)
-                h00 = findobj(ax1,'Type',types{ii});
-                if ~isempty(h00)
-                    delete(h00);
-                end
-                h00 = findobj(ax2,'Type',types{ii});
-                if ~isempty(h00)
-                    delete(h00);
-                end
-            end
+            removeDisplayAnnotations(ax1);
+            removeDisplayAnnotations(ax2);
             
             nCFU1 = size(cfuInfo1,1);
             for ii=1:numel(favLst)
@@ -244,7 +229,6 @@ function updtCFUint(~,~,fCFU,colorRenew)
         end
     else
         dat1 = fh.averPro1;
-        [H,W,L] = size(dat1);
         dat1 = dat1 - min(dat1(:));
         dat1 = dat1/max(dat1(:));
         sclXY = fh.sldDsXY.Value;
@@ -375,6 +359,22 @@ function updtCFUint(~,~,fCFU,colorRenew)
                 ims{ii}.OverlayColormap = [0,0,0;cols{ii}];
                 ims{ii}.OverlayAlphamap = 1 - fh.sldOverlayTrans.Value;
             end
+        end
+    end
+end
+
+function removeDisplayAnnotations(ax)
+%removeDisplayAnnotations Remove transient annotations while retaining spatial boundaries.
+
+    annotationTypes = {'patch', 'text', 'line'};
+    for typeIndex = 1:numel(annotationTypes)
+        annotations = findobj(ax, 'Type', annotationTypes{typeIndex});
+        if strcmp(annotationTypes{typeIndex}, 'line')
+            isSpatialBoundary = arrayfun(@(h) startsWith(h.Tag, 'spatialBoundary'), annotations);
+            annotations = annotations(~isSpatialBoundary);
+        end
+        if ~isempty(annotations)
+            delete(annotations);
         end
     end
 end

@@ -8,7 +8,11 @@ function returnMajorGUI(~,~,fCFU,f)
     setappdata(f,'colorMap2',getappdata(fCFU,'colorMap2'));
     setappdata(f,'cfuRelation',getappdata(fCFU,'relation'));
     setappdata(f,'cfuGroupInfo',getappdata(fCFU,'groupInfo'));
+    if isappdata(fCFU,'spatialBoundary')
+        setappdata(f,'spatialBoundary',getappdata(fCFU,'spatialBoundary'));
+    elseif isappdata(f,'spatialBoundary')
+        rmappdata(f,'spatialBoundary');
+    end
     setappdata(f,'needReCheckCFU',false);
     delete(fCFU);
 end
-

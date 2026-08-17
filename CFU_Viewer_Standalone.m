@@ -97,6 +97,9 @@ function CFU_Viewer_Standalone()
     
     % --- Channel 1 Data ---
     setappdata(fCFU, 'cfuInfo1', loadedData.cfuInfo1);
+    if isfield(loadedData, 'spatialBoundary')
+        setappdata(fCFU, 'spatialBoundary', loadedData.spatialBoundary);
+    end
     
     % Reconstruct cfuMap1
     cfuMap1 = zeros(H, W, L, 'uint16');
@@ -219,16 +222,20 @@ function CFU_Viewer_Standalone()
     fh.sldWinSz.Enable = 'on';
     fh.shift.Enable = 'on';
 
+    % The built-in CFU layout reserves its lower-left panel for 3-D tools.
+    % Reuse that panel in 2-D so the classification controls never overlap
+    % either the image or the dF/F curve while the window is resized.
+    createSpatialClassificationPanel(fCFU, H, W, L);
+
     % Save guidata and refresh
     guidata(fCFU, fh);
     cfu.updtCFUTable(fCFU);
     cfu.updtGrpTable(fCFU, fOut);
-    ui.updtCFUint([], [], fCFU, true); 
+    ui.updtCFUint([], [], fCFU, true);
+    restoreSpatialBoundary(fCFU, H, W, L);
 
     % 8. Disable non-runnable functions
-    % Note: Must disable after populating parameters.
     fh = guidata(fCFU);
-    
     fh.deOutRun.Enable = 'off';
     fh.deOutRun.Text = 'Run (Disabled)';
     fh.alpha.Enable = 'off';
@@ -236,25 +243,443 @@ function CFU_Viewer_Standalone()
     if isfield(fh, 'alpha2'), fh.alpha2.Enable = 'off'; end
     if isfield(fh, 'minNumEvt2'), fh.minNumEvt2.Enable = 'off'; end
     fh.loadCFUButton.Enable = 'off';
-    
     fh.buttonGroup.Enable = 'off';
     fh.buttonGroup.Text = 'Group (Disabled)';
-    
     guidata(fCFU, fh);
     
     % 9. Set close callback
     fCFU.CloseRequestFcn = @(src, ~) closeHandlers(src, fOut);
-    
     disp('CFU Viewer opened successfully with parameters populated.');
 end
 
 function closeHandlers(fCFU, fOut)
     try
-        if isvalid(fOut), delete(fOut); end
+        if isvalid(fOut)
+            delete(fOut);
+        end
     catch
+        % The hidden parent figure can already have been deleted.
     end
     try
         delete(fCFU);
     catch
+        % The CFU figure can already have been deleted by the window manager.
     end
+end
+
+function createSpatialClassificationPanel(fCFU, H, W, L)
+%createSpatialClassificationPanel Add 2-D classification controls to the left panel.
+
+    if L ~= 1
+        return;
+    end
+
+    panelHost = findobj(fCFU, 'Type', 'uipanel', 'Tag', 'pSelect');
+    if numel(panelHost) ~= 1 || ~isvalid(panelHost)
+        warning('CFU_Viewer_Standalone:SpatialPanelUnavailable', ...
+            'The spatial-classification panel could not be added to the CFU layout.');
+        return;
+    end
+
+    delete(panelHost.Children);
+    panelHost.Title = 'Spatial Polyline Classification';
+    panelHost.Visible = 'on';
+
+    grid = uigridlayout(panelHost, [4, 2], ...
+        'ColumnWidth', {130, '1x'}, 'RowHeight', {20, 22, 22, 22}, ...
+        'Padding', [10, 8, 10, 8], 'RowSpacing', 5, 'ColumnSpacing', 5);
+    instruction = uilabel(grid, 'Text', 'Start at the left edge; right-click to cancel.');
+    instruction.Layout.Column = [1, 2];
+    uilabel(grid, 'Text', 'Upper class (A) label');
+    editA = uieditfield(grid, 'numeric', 'Value', 0);
+    uilabel(grid, 'Text', 'Lower class (B) label');
+    editB = uieditfield(grid, 'numeric', 'Value', 1);
+    button = uibutton(grid, 'push', 'Text', 'Draw boundary and classify', ...
+        'ButtonPushedFcn', @(src, ~) drawPolylineAndClassify(src, fCFU, editA, editB, H, W, L));
+    button.Layout.Column = [1, 2];
+end
+
+function drawPolylineAndClassify(btnSrc, fCFU, editA, editB, H, W, L)
+%drawPolylineAndClassify Draw a 2-D boundary and assign every CFU a class.
+
+    fh = guidata(fCFU);
+    if isfield(fh, 'mov') && isgraphics(fh.mov)
+        ax = fh.mov;
+    elseif isfield(fh, 'movL') && isgraphics(fh.movL)
+        ax = fh.movL;
+    else
+        uialert(fCFU, 'The 2-D spatial image axes could not be located.', 'Spatial Classification');
+        return;
+    end
+    if ~isprop(ax, 'XLim') || ~isprop(ax, 'YLim')
+        uialert(fCFU, 'Spatial polyline classification supports 2-D images only.', 'Spatial Classification');
+        return;
+    end
+
+    xLim = ax.XLim;
+    yLim = ax.YLim;
+    if ~isnumeric(xLim) || ~isnumeric(yLim) || numel(xLim) ~= 2 || numel(yLim) ~= 2 || ...
+            any(~isfinite([xLim, yLim])) || xLim(2) <= xLim(1) || yLim(2) <= yLim(1)
+        uialert(fCFU, 'The current image coordinate limits are invalid.', 'Spatial Classification');
+        return;
+    end
+
+    oldButtonDown = fCFU.WindowButtonDownFcn;
+    oldButtonMotion = fCFU.WindowButtonMotionFcn;
+    oldPointer = fCFU.Pointer;
+    oldNextPlot = ax.NextPlot;
+    oldTitle = struct('String', ax.Title.String, 'Color', ax.Title.Color, ...
+        'FontSize', ax.Title.FontSize, 'FontWeight', ax.Title.FontWeight);
+    edgeSnapFraction = 0.02;
+    wasCleaned = false;
+    xs = [];
+    ys = [];
+    setStoredSpatialBoundaryLineAppearance(fCFU, 'reference');
+
+    try
+        hold(ax, 'on');
+        boundaryLine = plot(ax, NaN, NaN, '-o', 'Color', [1, 0.85, 0], ...
+            'LineWidth', 2, 'MarkerFaceColor', 'r', 'MarkerSize', 6, ...
+            'HitTest', 'off', 'Tag', 'spatialBoundaryCurrent');
+        previewLine = plot(ax, NaN, NaN, 'y--', 'LineWidth', 1.5, 'HitTest', 'off');
+    catch ME
+        ax.NextPlot = oldNextPlot;
+        setStoredSpatialBoundaryLineAppearance(fCFU, 'active');
+        uialert(fCFU, ME.message, 'Unable to Start Drawing');
+        return;
+    end
+
+    btnSrc.Enable = 'off';
+    btnSrc.Text = 'Drawing...';
+    fCFU.Pointer = 'crosshair';
+    title(ax, 'Left-click to add points; click near the right edge to finish; right-click to cancel', ...
+        'Color', 'r', 'FontSize', 12);
+    fCFU.WindowButtonDownFcn = @mouseClickCallback;
+    fCFU.WindowButtonMotionFcn = @mouseMoveCallback;
+
+    function mouseClickCallback(src, ~)
+        if strcmp(src.SelectionType, 'alt')
+            cleanUpDrawing();
+            return;
+        end
+        if ~strcmp(src.SelectionType, 'normal')
+            return;
+        end
+
+        point = ax.CurrentPoint;
+        x = point(1, 1);
+        y = point(1, 2);
+        if x < xLim(1) || x > xLim(2) || y < yLim(1) || y > yLim(2)
+            return;
+        end
+
+        xSpan = diff(xLim);
+        snapMargin = max(1, edgeSnapFraction * xSpan);
+        xDirNormal = strcmpi(ax.XDir, 'normal');
+        leftEdge = xLim(1 + ~xDirNormal);
+        rightEdge = xLim(2 - ~xDirNormal);
+        if isempty(xs)
+            x = leftEdge;
+        elseif (xDirNormal && x >= xLim(2) - snapMargin) || ...
+                (~xDirNormal && x <= xLim(1) + snapMargin)
+            x = rightEdge;
+        end
+
+        movesRight = isempty(xs) || (xDirNormal && x > xs(end)) || ...
+            (~xDirNormal && x < xs(end));
+        if ~movesRight
+            title(ax, 'The boundary must progress from left to right.', 'Color', 'm', 'FontSize', 12);
+            return;
+        end
+
+        xs(end + 1) = x;
+        ys(end + 1) = y;
+        set(boundaryLine, 'XData', xs, 'YData', ys);
+        set(previewLine, 'XData', NaN, 'YData', NaN);
+
+        if isequal(x, rightEdge)
+            executeClassification();
+        else
+            title(ax, sprintf('%d point(s) added; continue right and finish near the edge.', numel(xs)), ...
+                'Color', 'r', 'FontSize', 11);
+        end
+    end
+
+    function mouseMoveCallback(~, ~)
+        if isempty(xs) || ~isgraphics(previewLine)
+            return;
+        end
+        point = ax.CurrentPoint;
+        x = point(1, 1);
+        y = point(1, 2);
+        if x < xLim(1) || x > xLim(2) || y < yLim(1) || y > yLim(2)
+            set(previewLine, 'XData', NaN, 'YData', NaN);
+            return;
+        end
+
+        snapMargin = max(1, edgeSnapFraction * diff(xLim));
+        if (strcmpi(ax.XDir, 'normal') && x >= xLim(2) - snapMargin)
+            x = xLim(2);
+        elseif strcmpi(ax.XDir, 'reverse') && x <= xLim(1) + snapMargin
+            x = xLim(1);
+        end
+        set(previewLine, 'XData', [xs(end), x], 'YData', [ys(end), y]);
+    end
+
+    function cleanUpDrawing(keepNewBoundary)
+        if nargin < 1
+            keepNewBoundary = false;
+        end
+        if wasCleaned
+            return;
+        end
+        wasCleaned = true;
+        if ~keepNewBoundary && isgraphics(boundaryLine)
+            delete(boundaryLine);
+        end
+        if isgraphics(previewLine)
+            delete(previewLine);
+        end
+        if isgraphics(fCFU)
+            fCFU.WindowButtonDownFcn = oldButtonDown;
+            fCFU.WindowButtonMotionFcn = oldButtonMotion;
+            fCFU.Pointer = oldPointer;
+        end
+        if isgraphics(ax)
+            ax.NextPlot = oldNextPlot;
+            title(ax, oldTitle.String, 'Color', oldTitle.Color, ...
+                'FontSize', oldTitle.FontSize, 'FontWeight', oldTitle.FontWeight);
+        end
+        if isgraphics(btnSrc)
+            btnSrc.Enable = 'on';
+            btnSrc.Text = 'Draw boundary and classify';
+        end
+        if ~keepNewBoundary
+            setStoredSpatialBoundaryLineAppearance(fCFU, 'active');
+        end
+    end
+
+    function executeClassification()
+        try
+            valA = editA.Value;
+            valB = editB.Value;
+            if ~isscalar(valA) || ~isscalar(valB) || ~isfinite(valA) || ~isfinite(valB) || isequal(valA, valB)
+                error('CFU_Viewer_Standalone:InvalidClasses', ...
+                    'Classes A and B must be distinct finite numeric values.');
+            end
+            if numel(xs) < 2
+                error('CFU_Viewer_Standalone:IncompleteBoundary', ...
+                    'Start at the left edge and finish the boundary at the right edge.');
+            end
+
+            cfuInfo1 = getappdata(fCFU, 'cfuInfo1');
+            if ~iscell(cfuInfo1) || size(cfuInfo1, 2) < 3 || isempty(cfuInfo1)
+                error('CFU_Viewer_Standalone:InvalidCFUData', ...
+                    'The current session does not contain valid CFU data to classify.');
+            end
+            nCFU = size(cfuInfo1, 1);
+            centres = zeros(nCFU, 2);
+            invalidFootprints = false(nCFU, 1);
+            for i = 1:nCFU
+                [centres(i, :), isValid] = getCFUCentre(cfuInfo1{i, 3}, H, W, L);
+                if ~isValid
+                    invalidFootprints(i) = true;
+                end
+            end
+            invalidIds = find(invalidFootprints);
+            if ~isempty(invalidIds)
+                shownIds = sprintf('%d, ', invalidIds(1:min(end, 8)));
+                error('CFU_Viewer_Standalone:InvalidFootprint', ...
+                    'CFU footprint data are invalid (IDs: %s). No classifications were changed.', ...
+                    shownIds(1:end-2));
+            end
+
+            [lineX, order] = sort(xs);
+            lineY = ys(order);
+            extension = max([abs(xLim), W]) + 1e6;
+            lineX = [-extension, lineX, extension];
+            lineY = [lineY(1), lineY, lineY(end)];
+            yLine = interp1(lineX, lineY, centres(:, 1), 'linear');
+            if strcmpi(ax.YDir, 'normal')
+                isAbove = centres(:, 2) > yLine;
+            else
+                isAbove = centres(:, 2) < yLine;
+            end
+            cfuLabels = repmat(valB, nCFU, 1);
+            cfuLabels(isAbove) = valA;
+
+            % Match the main CFU GUI: column 10 stores event metadata, and
+            % column 11 stores the spatial classification label.
+            cfuInfo1(:, 11) = num2cell(cfuLabels);
+            spatialBoundary = createSpatialBoundary(xs, ys, valA, valB, [H, W, L]);
+            removeStoredSpatialBoundaryLine(fCFU);
+            setappdata(fCFU, 'cfuInfo1', cfuInfo1);
+            setappdata(fCFU, 'spatialClassLabels', cfuLabels);
+            setappdata(fCFU, 'spatialBoundary', spatialBoundary);
+            setappdata(fCFU, 'spatialBoundaryLine', boundaryLine);
+            cleanUpDrawing(true);
+            uialert(fCFU, sprintf(['Spatial polyline classification is complete.\n' ...
+                'Upper class (A): %d CFU(s)\nLower class (B): %d CFU(s)\n\n' ...
+                'The classifications and boundary were saved with the current CFU results.'], ...
+                sum(isAbove), sum(~isAbove)), 'Spatial Classification', 'Icon', 'success');
+        catch ME
+            cleanUpDrawing();
+            uialert(fCFU, ME.message, 'Spatial Classification Failed', 'Icon', 'error');
+        end
+    end
+end
+
+function restoreSpatialBoundary(fCFU, H, W, L)
+%restoreSpatialBoundary Draw a saved spatial boundary as a dark reference line.
+
+    if L ~= 1 || ~isappdata(fCFU, 'spatialBoundary')
+        return;
+    end
+    spatialBoundary = getappdata(fCFU, 'spatialBoundary');
+    [xData, yData, isValid] = getSpatialBoundaryCoordinates(spatialBoundary, H, W, L);
+    if ~isValid
+        warning('CFU_Viewer_Standalone:InvalidSpatialBoundary', ...
+            'The saved spatial boundary is invalid for the current image and was not displayed.');
+        return;
+    end
+
+    fh = guidata(fCFU);
+    if isfield(fh, 'mov') && isgraphics(fh.mov)
+        ax = fh.mov;
+    elseif isfield(fh, 'movL') && isgraphics(fh.movL)
+        ax = fh.movL;
+    else
+        return;
+    end
+    if ~isprop(ax, 'XLim') || ~isprop(ax, 'YLim')
+        return;
+    end
+
+    removeStoredSpatialBoundaryLine(fCFU);
+    oldNextPlot = ax.NextPlot;
+    try
+        hold(ax, 'on');
+        boundaryLine = plot(ax, xData, yData, '--o', 'Color', [0.35, 0.35, 0.35], ...
+            'LineWidth', 1.5, 'MarkerFaceColor', [0.35, 0.35, 0.35], ...
+            'MarkerSize', 5, 'HitTest', 'off', 'Tag', 'spatialBoundaryReference');
+        setappdata(fCFU, 'spatialBoundaryLine', boundaryLine);
+    catch ME
+        warning('CFU_Viewer_Standalone:SpatialBoundaryDisplayFailed', '%s', ME.message);
+    end
+    if isgraphics(ax)
+        ax.NextPlot = oldNextPlot;
+    end
+end
+
+function boundary = createSpatialBoundary(xData, yData, classA, classB, imageSize)
+%createSpatialBoundary Build the serializable representation of one boundary.
+
+    boundary = struct('Version', 1, 'XData', double(xData(:).'), ...
+        'YData', double(yData(:).'), 'ClassA', double(classA), ...
+        'ClassB', double(classB), 'ImageSize', double(imageSize(:).'), ...
+        'ClassificationColumn', 11);
+end
+
+function [xData, yData, isValid] = getSpatialBoundaryCoordinates(boundary, H, W, L)
+%getSpatialBoundaryCoordinates Validate a saved boundary for the current image.
+
+    xData = [];
+    yData = [];
+    isValid = isstruct(boundary) && isscalar(boundary) && ...
+        isfield(boundary, 'XData') && isfield(boundary, 'YData');
+    if ~isValid
+        return;
+    end
+
+    xData = boundary.XData;
+    yData = boundary.YData;
+    isValid = isnumeric(xData) && isnumeric(yData) && isvector(xData) && ...
+        isvector(yData) && numel(xData) == numel(yData) && numel(xData) >= 2 && ...
+        all(isfinite(xData), 'all') && all(isfinite(yData), 'all');
+    if ~isValid
+        return;
+    end
+    if isfield(boundary, 'ImageSize')
+        imageSize = boundary.ImageSize;
+        isValid = isnumeric(imageSize) && numel(imageSize) == 3 && ...
+            isequal(double(imageSize(:).'), double([H, W, L]));
+        if ~isValid
+            return;
+        end
+    end
+    xData = double(xData(:).');
+    yData = double(yData(:).');
+end
+
+function setStoredSpatialBoundaryLineAppearance(fCFU, appearance)
+%setStoredSpatialBoundaryLineAppearance Switch the saved boundary line style.
+
+    if ~isappdata(fCFU, 'spatialBoundaryLine')
+        return;
+    end
+    boundaryLine = getappdata(fCFU, 'spatialBoundaryLine');
+    if ~isgraphics(boundaryLine)
+        return;
+    end
+
+    if strcmp(appearance, 'reference')
+        boundaryLine.Color = [0.35, 0.35, 0.35];
+        boundaryLine.LineStyle = '--';
+        boundaryLine.MarkerFaceColor = [0.35, 0.35, 0.35];
+    else
+        boundaryLine.Color = [1, 0.85, 0];
+        boundaryLine.LineStyle = '-';
+        boundaryLine.MarkerFaceColor = 'r';
+    end
+end
+
+function removeStoredSpatialBoundaryLine(fCFU)
+%removeStoredSpatialBoundaryLine Delete the previous boundary graphic only.
+
+    if ~isappdata(fCFU, 'spatialBoundaryLine')
+        return;
+    end
+    boundaryLine = getappdata(fCFU, 'spatialBoundaryLine');
+    if isgraphics(boundaryLine)
+        delete(boundaryLine);
+    end
+    rmappdata(fCFU, 'spatialBoundaryLine');
+end
+
+function [centre, isValid] = getCFUCentre(weightMap, H, W, L)
+%getCFUCentre Return the display-coordinate centroid of one CFU footprint.
+
+    centre = [NaN, NaN];
+    isValid = isnumeric(weightMap) || islogical(weightMap);
+    if ~isValid || numel(weightMap) ~= H * W * L
+        isValid = false;
+        return;
+    end
+    if issparse(weightMap)
+        weightMap = full(weightMap);
+    end
+    try
+        weightMap = reshape(double(weightMap), H, W, L);
+    catch
+        isValid = false;
+        return;
+    end
+
+    projection = sum(weightMap, 3);
+    projection(~isfinite(projection)) = 0;
+    validPixels = projection > 0.1;
+    if ~any(validPixels, 'all')
+        % A valid but empty footprint belongs to the lower class by convention.
+        centre = [NaN, NaN];
+        return;
+    end
+    [rows, columns] = find(validPixels);
+    weights = projection(validPixels);
+    totalWeight = sum(weights);
+    if ~isfinite(totalWeight) || totalWeight <= 0
+        isValid = false;
+        return;
+    end
+    centre = [sum(columns .* weights) / totalWeight, ...
+        H - sum(rows .* weights) / totalWeight + 1];
 end

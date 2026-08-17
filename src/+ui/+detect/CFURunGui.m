@@ -1,6 +1,9 @@
 function CFURunGui(~,~,fCFU,f)
     
     fh = guidata(fCFU);
+    if isfield(fh,'spatialBoundaryButton')
+        fh.spatialBoundaryButton.Enable = 'off';
+    end
     opts = getappdata(f,'opts');
     evtLst1 = getappdata(f, 'evt1');
     fts1 = getappdata(f, 'fts1'); % [Added] Get features for peak times
@@ -30,9 +33,24 @@ function CFURunGui(~,~,fCFU,f)
     
     alpha = str2double(fh.alpha.Value);
     minNumEvt = str2double(fh.minNumEvt.Value);
+
+    % Developer Ver 2025/03/06: Set time window for valid events for CFU
+    tStart = 1;           % Set Start Frame
+    tEnd = opts.sz(4);    % End Frame
     
+    if isfield(fts1, 'curve') && isfield(fts1.curve, 'dffMaxFrame')
+        peakFrames = fts1.curve.dffMaxFrame;
+        validEvts1 = (peakFrames >= tStart) & (peakFrames <= tEnd);
+        validEvts1 = validEvts1(:);
+    else
+        validEvts1 = true(numel(cfu_pre1.evtIhw),1);
+        warning('Peak frame features not found, using all events.');
+    end
+
     ff = waitbar(0,'Calculating cfu info');
-    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,true(numel(cfu_pre1.evtIhw),1),fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    % End Developer Ver 2025/03/06
+
     waitbar(0.3,ff);
     title('CFU in channel 1');
     datOrg1 = getappdata(f, 'datOrg1');
@@ -70,7 +88,7 @@ function CFURunGui(~,~,fCFU,f)
     cfuTimeWindow1 = false(nCFU,T);
     cfuNonTimeWindow1 = false(nCFU,T);
     
-    cfuInfo = cell(nCFU,9);
+    cfuInfo = cell(nCFU,10);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
@@ -82,12 +100,16 @@ function CFURunGui(~,~,fCFU,f)
         x0 = movmean(x0,2);
         
         tPeaks = zeros(numel(evtInCFU), 1); 
+        ownTimeFrames = cell(numel(evtInCFU), 1);
         
         for j = 1:numel(evtInCFU)
             label = evtInCFU(j);
-            [~,~,~,it] = ind2sub([H,W,L,T],evtLst1{label});
-            t0 = min(it);
-            t1 = max(it);
+            [ih_ev, iw_ev, il_ev, it_ev] = ind2sub([H,W,L,T],evtLst1{label});
+            t0 = min(it_ev);
+            t1 = max(it_ev);
+            % 提取仅仅落入当前 CFU 空间范围内的活跃时间帧
+            spa_ev = sub2ind([H,W,L], ih_ev, iw_ev, il_ev);
+            ownTimeFrames{j} = unique(it_ev(ismember(spa_ev, pix)));
             
             tPeaks(j) = fts1.curve.dffMaxFrame(label); % Use peak frame
             
@@ -104,6 +126,98 @@ function CFURunGui(~,~,fCFU,f)
         cfuInfo{i,7} = cfuTimeWindow1(i,:); 
         cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
         cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate); 
+        
+        % Calculate uncertain events
+        % --- 第10列：使用“精确逐帧 IoU”筛选灰色事件（包含自身筛查与内部去重） ---
+        iouThr = 0.5; % 逐帧重叠率 > 50% 即判定为同一生理活动的碎片
+        iouThr2 = 0.1;
+        overlappingCFUs = unique(cfuMapVideo(pix, :));
+        overlappingCFUs(overlappingCFUs == 0) = [];
+        overlappingCFUs(overlappingCFUs == i) = [];
+        
+        initialGrayEvts = [];
+        grayTimeFramesCell = {}; % 缓存灰色事件的精确活跃帧，用于后续内部两两比较
+        
+        for oCfuIdx = overlappingCFUs(:)'
+            evtsInOther = CFU_lst1{oCfuIdx};
+            for eIdx = 1:numel(evtsInOther)
+                evID = evtsInOther(eIdx);
+                
+                % 1. 快速空间交集初筛
+                if ~isempty(intersect(cfu_pre1.evtIhw{evID}, pix))
+                    
+                    % 2. 提取该灰色事件在当前区域内的确切活跃时间帧
+                    [ih_gray, iw_gray, il_gray, it_gray] = ind2sub([H,W,L,T],evtLst1{evID});
+                    spa_gray = sub2ind([H,W,L], ih_gray, iw_gray, il_gray);
+                    grayTimeFrames = unique(it_gray(ismember(spa_gray, pix)));
+                    
+                    % 防止异常空帧
+                    if isempty(grayTimeFrames)
+                        continue;
+                    end
+
+                    % 如果该灰色事件在当前区域的活跃时刻，有 >50% 落在了 CFU 的整体时间窗内
+                    overlapGlobalCnt = sum(cfuTimeWindow1(i, grayTimeFrames));
+                    if (overlapGlobalCnt / numel(grayTimeFrames)) > 0.5
+                        continue; % 判定为被 CFU 整体活动掩盖的无效事件，直接排除
+                    end
+                    
+                    % 3. 检查与当前 CFU 自身事件的重复率
+                    isDuplicate = false;
+                    for k = 1:numel(ownTimeFrames)
+                        own_t = ownTimeFrames{k};
+                        if isempty(own_t)
+                            continue;
+                        end
+                        
+                        % 基于精确帧计算 IoU
+                        inter_len = numel(intersect(own_t, grayTimeFrames));
+                        union_len = numel(union(own_t, grayTimeFrames));
+                        iou = inter_len / union_len;
+                        
+                        if iou > iouThr
+                            isDuplicate = true;
+                            break; 
+                        end
+                    end
+                    
+                    if ~isDuplicate
+                        initialGrayEvts(end+1) = evID;
+                        grayTimeFramesCell{end+1} = grayTimeFrames;
+                    end
+                end
+            end
+        end
+        
+        % 4. 灰色事件内部的两两 IoU 筛查去重
+        nGray = numel(initialGrayEvts);
+        keepIdx = true(nGray, 1); % 标记位，标记为 true 的最终保留
+        
+        for m = 1:nGray
+            if ~keepIdx(m)
+                continue; % 已经被判定为重复而舍弃的，不再作为基准
+            end
+            frames_m = grayTimeFramesCell{m};
+            
+            for n = (m+1):nGray
+                if ~keepIdx(n)
+                    continue;
+                end
+                frames_n = grayTimeFramesCell{n};
+                
+                inter_len = numel(intersect(frames_m, frames_n));
+                union_len = numel(union(frames_m, frames_n));
+                iou = inter_len / union_len;
+                
+                if iou > iouThr2
+                    % 发现高度重合，判定为代表了同一个峰，保留 m，剔除 n
+                    keepIdx(n) = false;
+                end
+            end
+        end
+        
+        finalGrayEvts = initialGrayEvts(keepIdx);
+        cfuInfo{i,10} = finalGrayEvts;
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
     
@@ -238,6 +352,10 @@ function CFURunGui(~,~,fCFU,f)
     fh.winSz.Enable = 'on';
     fh.sldWinSz.Enable = 'on';
     fh.shift.Enable = 'on';
+    cfu.applySpatialBoundary(fCFU);
+    if isfield(fh,'spatialBoundaryButton')
+        fh.spatialBoundaryButton.Enable = 'on';
+    end
 %     fh.pThr.Enable = 'on';
 %     fh.minNumCFU.Enable = 'on';
 %     fh.buttonGroup.Enable = 'on';

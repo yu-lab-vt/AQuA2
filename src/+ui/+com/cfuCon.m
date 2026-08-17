@@ -110,7 +110,11 @@ bSelectBt = uigridlayout(bSelect,'Padding',[10,0,10,0],'ColumnWidth',{'1x','1x',
 uibutton(bSelectBt,'push','Text','Slice view','Tag','sliceview','ButtonPushedFcn',{@cfu.sliceView,fCFU});
 uibutton(bSelectBt,'push','Text','3D view','Tag','3Dview','ButtonPushedFcn',{@cfu.view3D,fCFU});
 uibutton(bSelectBt,'push','Text','Select','Tag','select3D','ButtonPushedFcn',{@cfu.select3D,fCFU,fOut});
-pSelect.Visible = 'off';
+if opts.sz(3) == 1
+    cfu.addSpatialBoundaryPanel(fCFU, pSelect);
+else
+    pSelect.Visible = 'off';
+end
 
 %% %% Data Panel
 % top level panels
@@ -393,9 +397,16 @@ if(needLoad && ~isempty(getappdata(fOut,'cfuInfo1')))
     setappdata(fCFU,'colorMap1',getappdata(fOut,'colorMap1'));
     setappdata(fCFU,'cols2',getappdata(fOut,'cols2'));
     setappdata(fCFU,'colorMap2',getappdata(fOut,'colorMap2'));
+    if isappdata(fOut,'spatialBoundary')
+        setappdata(fCFU,'spatialBoundary',getappdata(fOut,'spatialBoundary'));
+    end
     ui.updtCFUint([],[],fCFU,false);
+    cfu.restoreSpatialBoundary(fCFU);
     fh.pickButton.Enable = 'on';
     fh.calDep.Enable = 'on';
+    if isfield(fh,'spatialBoundaryButton')
+        fh.spatialBoundaryButton.Enable = 'on';
+    end
 end
 
 if(needLoad && ~isempty(getappdata(fOut,'relation')))
@@ -411,6 +422,3 @@ if(needLoad && ~isempty(getappdata(fOut,'groupInfo')))
 end
 
 end
-
-
-

@@ -3,11 +3,24 @@ function output(~,~,fCFU,f)
     fh = guidata(fCFU);
     datPro = util.normalize01(fh.averPro1);
 
-    selpath = uigetdir(opts.filePath1,'Choose output folder');
-    if isequal(selpath,0)
+    defaultOutputName = getDefaultOutputName(opts.fileName1);
+    enteredName = inputdlg( ...
+        'Enter the complete output file name (with or without .mat):', ...
+        'Save CFU Results', [1, 80], {defaultOutputName});
+    if isempty(enteredName)
         return;
     end
-    path0 = [selpath,filesep,opts.fileName1];
+    [outputName, isValidName, validationMessage] = validateOutputName(enteredName{1});
+    if ~isValidName
+        uialert(fCFU, validationMessage, 'Invalid Output Name', 'Icon', 'error');
+        return;
+    end
+
+    outputFolder = uigetdir(opts.filePath1, 'Choose output folder');
+    if isequal(outputFolder, 0)
+        return;
+    end
+    outputPath = fullfile(outputFolder, outputName);
 
     favCFUList = [];
     if isfield(fh,'favCFUs')
@@ -19,8 +32,12 @@ function output(~,~,fCFU,f)
     cfuInfo2 = getappdata(fCFU,'cfuInfo2');
     cfuRelation = getappdata(fCFU,'relation');
     cfuGroupInfo = getappdata(fCFU,'groupInfo');
-    save([path0,'_AQuA2_res_cfu.mat'],'cfuInfo1','cfuInfo2','cfuRelation', ...
-        'cfuGroupInfo','cfuOpts','datPro','favCFUList');
+    spatialBoundary = [];
+    if isappdata(fCFU,'spatialBoundary')
+        spatialBoundary = getappdata(fCFU,'spatialBoundary');
+    end
+    save([outputPath,'.mat'],'cfuInfo1','cfuInfo2','cfuRelation', ...
+        'cfuGroupInfo','cfuOpts','datPro','favCFUList','spatialBoundary');
 
     % Update 2026-08-07: export favorite CFU event summaries as an English-only Excel table.
     if isempty(favCFUList)
@@ -52,12 +69,56 @@ function output(~,~,fCFU,f)
         exportCell(2:end,i + 1) = num2cell(getEventStatistics(fts,eventIds).');
     end
 
-    excelPath = [path0,'_AQuA2_res_favorite_cfu.xlsx'];
+    excelPath = [outputPath,'_favorite_cfu.xlsx'];
     try
         writecell(exportCell,excelPath);
-    catch
-        xlswrite(excelPath,exportCell);
+    catch ME
+        warning('cfu:FavoriteExportFailed', ...
+            'The favorite CFU summary could not be written to "%s": %s', excelPath, ME.message);
     end
+end
+
+function defaultName = getDefaultOutputName(sourceName)
+%getDefaultOutputName Create a CFU result name without repeating its suffix.
+
+    [~, sourceBase, ~] = fileparts(sourceName);
+    if isempty(sourceBase)
+        sourceBase = 'CFU_results';
+    end
+    resultSuffix = '_AQuA2_res_cfu';
+    if endsWith(sourceBase, resultSuffix, 'IgnoreCase', true)
+        defaultName = sourceBase;
+    else
+        defaultName = [sourceBase, resultSuffix];
+    end
+end
+
+function [outputName, isValid, validationMessage] = validateOutputName(enteredName)
+%validateOutputName Validate a complete MAT-file name and return its stem.
+
+    outputName = '';
+    isValid = false;
+    validationMessage = '';
+    if ~(ischar(enteredName) || (isstring(enteredName) && isscalar(enteredName)))
+        validationMessage = 'Enter a valid output file name.';
+        return;
+    end
+    enteredName = strtrim(char(enteredName));
+    [folderPart, fileStem, extension] = fileparts(enteredName);
+    if isempty(enteredName) || ~isempty(folderPart) || isempty(fileStem)
+        validationMessage = 'Enter a file name only; choose the output folder in the next dialog.';
+        return;
+    end
+    if ~isempty(extension) && ~strcmpi(extension, '.mat')
+        validationMessage = 'The output file extension must be .mat or omitted.';
+        return;
+    end
+    if ~isempty(regexp(fileStem, '[<>:"/\\|?*]', 'once'))
+        validationMessage = 'The output file name contains characters that are not allowed.';
+        return;
+    end
+    outputName = fileStem;
+    isValid = true;
 end
 
 function [eventIds,fts] = getCfuEvents(id,nCFU1,cfuInfo1,cfuInfo2,fts1,fts2)
