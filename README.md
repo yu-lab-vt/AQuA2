@@ -54,9 +54,9 @@ If you have any feedback or issue, you are welcome to either post issue in Issue
   - Network features, which involve the distances between events and user-defined regions (e.g., cell regions or landmarks), as well as assessing the co-occurrence of events in spatial or temporal dimensions.
 - CFU-level features
   - Individual CFU information, including the spatial map, event sequence, average curve, and average dF curve.
-  - [CFU result data structure (including `cfuInfo` columns)](docs/CFU-result-structure.md)
   - The dependency between every pair of CFUs, as well as the relative delay between two CFUs.
   - The information of CFU groups, including CFU indexes and the relative delay of each CFU.
+  - Detailed structure of CFU res file can be found **[here](docs/CFU-result-structure.md)**.
 
 
 ## Graphical User Interface for Event Detection
