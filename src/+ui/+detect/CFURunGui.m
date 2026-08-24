@@ -53,7 +53,7 @@ function CFURunGui(~,~,fCFU,f)
     end
 
     ff = waitbar(0,'Calculating cfu info');
-    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
     % End Developer Ver 2025/03/06
 
     waitbar(0.3,ff);
@@ -93,7 +93,7 @@ function CFURunGui(~,~,fCFU,f)
     cfuTimeWindow1 = false(nCFU,T);
     cfuNonTimeWindow1 = false(nCFU,T);
     
-    cfuInfo = cell(nCFU,10);
+    cfuInfo = cell(nCFU,13);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
@@ -223,6 +223,7 @@ function CFURunGui(~,~,fCFU,f)
         
         finalGrayEvts = initialGrayEvts(keepIdx);
         cfuInfo{i,10} = finalGrayEvts;
+        cfuInfo{i,13} = cfuParentIds1(i); % original hierarchy cluster ID
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
     
@@ -251,7 +252,7 @@ function CFURunGui(~,~,fCFU,f)
         fts2 = getappdata(f, 'fts2'); 
         alpha = str2double(fh.alpha2.Value);
         minNumEvt = str2double(fh.minNumEvt2.Value);
-        [cfuRegions2,CFU_lst2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);    
+        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);
         waitbar(0.3,ff);
         title('CFU in channel 2');
         datOrg2 = getappdata(f, 'datOrg2');
@@ -288,7 +289,7 @@ function CFURunGui(~,~,fCFU,f)
         cfuTimeWindow2 = false(nCFU,T);
         cfuNonTimeWindow2 = false(nCFU,T);
         
-        cfuInfo = cell(nCFU,9); 
+        cfuInfo = cell(nCFU,13);
         
         for i = 1:nCFU
             pix = find(cfuRegions2{i}>0.1);
@@ -322,6 +323,7 @@ function CFURunGui(~,~,fCFU,f)
             cfuInfo{i,7} = cfuTimeWindow2(i,:);
             cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
             cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
+            cfuInfo{i,13} = cfuParentIds2(i); % original hierarchy cluster ID
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
         

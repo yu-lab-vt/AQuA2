@@ -1,4 +1,4 @@
-function [CFU_region,CFU_lst,weightedIhw,evtIhw] = CFU_minMeasure(cfu_pre,select,datPro,sz,thr,minEvt,showResults)
+function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds] = CFU_minMeasure(cfu_pre,select,datPro,sz,thr,minEvt,showResults)
 
     if(~exist('showResults','var'))
         showResults = false;
@@ -7,35 +7,25 @@ function [CFU_region,CFU_lst,weightedIhw,evtIhw] = CFU_minMeasure(cfu_pre,select
     linkage = cfu_pre.s_t0;
     linkage(:,3) = 1-linkage(:,3);
     weightedIhw = cfu_pre.weightedIhw;
-    maxCounts = cfu_pre.maxCounts;
     evtIhw = cfu_pre.evtIhw;
     
-    H = sz(1);
-    W = sz(2);
-    L = sz(3);
-    T = sz(4);
     nNode = numel(select);    
     [CFU_lst] = cfu.hierarchicalClusteringMinMeasure(linkage,nNode,1-thr);
     if(isempty(CFU_lst))
         CFU_region = []; 
         CFU_lst = [];
+        parentIds = zeros(0,1);
         return;
     end
     
     id = cellfun(@numel,CFU_lst)>=minEvt;
+    candidateParentIds = find(id);
     CFU_lst = CFU_lst(id);
-    %% calculate CFU region
-    CFU_region = cell(numel(CFU_lst),1);
-    for i = 1:numel(CFU_lst)
-        lst = CFU_lst{i};
-        weightMap = zeros(H,W,L,'single');
-        for j = 1:numel(lst)
-            label = lst(j);
-            weightMap(evtIhw{label}) = weightMap(evtIhw{label}) + weightedIhw{label}*maxCounts(label);
-        end
-        weightMap = weightMap/max(weightMap(:));
-        CFU_region{i} = weightMap;
-    end
+    % Spatial refinement makes the final CFU definition explicit: the
+    % retained region is a connected component of its weighted footprint
+    % above 0.1, after weak bridges and small satellites are removed.
+    [CFU_region,CFU_lst,parentIds] = cfu.refineSpatialCFUs( ...
+        CFU_lst,evtIhw,sz,minEvt,candidateParentIds);
 
 
     if(showResults)
