@@ -1,15 +1,16 @@
-function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, evtIhw, sz, minEvt, candidateParentIds)
+function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, evtIhw, weightedIhw, maxCounts, sz, minEvt, candidateParentIds)
 %REFINESPATIALCFUS Enforce connected CFU regions after event clustering.
 %   Candidate event clusters are spatially refined using pairwise footprint
-%   IoU. The returned region is the strictly defined (> 0.1) weighted
-%   footprint after weak bridges and small satellite components are removed.
+%   IoU. Pairwise similarity changes each event's scalar contribution while
+%   the original duration-weighted event maps define the spatial evidence.
 
     coverageThreshold = 0.5;
-    componentAreaRatioThreshold = 0.15;
-    minimumComponentPixels = 20;
+    finalRegionThreshold = 0.1;
+    coreSplitThreshold = 0.2;
+    componentAreaRatioThreshold = 0.1;
     maximumRefinementIterations = 8;
 
-    if nargin < 5 || isempty(candidateParentIds)
+    if nargin < 7 || isempty(candidateParentIds)
         candidateParentIds = (1:numel(candidateLists))';
     end
 
@@ -48,14 +49,14 @@ function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, e
             pendingDepths(1) = [];
 
             [weightMap, componentLabels, nComponents] = buildStrictRegion( ...
-                eventList, evtIhw, spatialSize, nSpatialPixels, ...
-                componentAreaRatioThreshold, minimumComponentPixels);
+                eventList, evtIhw, weightedIhw, maxCounts, spatialSize, nSpatialPixels, ...
+                coreSplitThreshold, componentAreaRatioThreshold);
             if nComponents == 0
                 continue;
             end
 
-            branches = reassignEvents(eventList, evtIhw, componentLabels, ...
-                nComponents, coverageThreshold);
+            branches = reassignEvents(eventList, evtIhw, weightedIhw, maxCounts, ...
+                componentLabels, nComponents, coverageThreshold);
             branchSizes = cellfun(@numel, branches);
             validBranches = find(branchSizes >= minEvt);
             if isempty(validBranches)
@@ -66,7 +67,8 @@ function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, e
             % its events remain assigned to it. It is ready for output.
             if nComponents == 1 && isscalar(validBranches) && ...
                     isequal(sort(branches{validBranches}), sort(eventList))
-                cfuRegions{end+1,1} = weightMap; %#ok<AGROW>
+                cfuRegions{end+1,1} = keepComponentRegion( ...
+                    weightMap, componentLabels, 1, finalRegionThreshold); %#ok<AGROW>
                 cfuLists{end+1,1} = eventList; %#ok<AGROW>
                 parentIds(end+1,1) = parentId; %#ok<AGROW>
                 continue;
@@ -77,8 +79,8 @@ function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, e
             if isscalar(validBranches) && ...
                     isequal(sort(branches{validBranches}), sort(eventList))
                 onlyComponent = validBranches;
-                weightMap(componentLabels ~= onlyComponent) = 0;
-                cfuRegions{end+1,1} = weightMap; %#ok<AGROW>
+                cfuRegions{end+1,1} = keepComponentRegion( ...
+                    weightMap, componentLabels, onlyComponent, finalRegionThreshold); %#ok<AGROW>
                 cfuLists{end+1,1} = eventList; %#ok<AGROW>
                 parentIds(end+1,1) = parentId; %#ok<AGROW>
                 continue;
@@ -89,8 +91,8 @@ function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, e
                     ['Spatial CFU refinement reached its iteration limit. ', ...
                     'Keeping the latest connected branches.']);
                 for branchIndex = validBranches(:)'
-                    branchMap = weightMap;
-                    branchMap(componentLabels ~= branchIndex) = 0;
+                    branchMap = keepComponentRegion( ...
+                        weightMap, componentLabels, branchIndex, finalRegionThreshold);
                     cfuRegions{end+1,1} = branchMap; %#ok<AGROW>
                     cfuLists{end+1,1} = branches{branchIndex}; %#ok<AGROW>
                     parentIds(end+1,1) = parentId; %#ok<AGROW>
@@ -107,7 +109,8 @@ function [cfuRegions, cfuLists, parentIds] = refineSpatialCFUs(candidateLists, e
 end
 
 function [weightMap, componentLabels, nComponents] = buildStrictRegion( ...
-    eventList, evtIhw, spatialSize, nSpatialPixels, areaRatioThreshold, minimumPixels)
+    eventList, evtIhw, weightedIhw, maxCounts, spatialSize, nSpatialPixels, ...
+    coreSplitThreshold, areaRatioThreshold)
 
     nEvents = numel(eventList);
     iou = eye(nEvents);
@@ -126,19 +129,22 @@ function [weightMap, componentLabels, nComponents] = buildStrictRegion( ...
     nodeWeights = nodeWeights / max(nodeWeights);
     weightVector = zeros(nSpatialPixels, 1, 'single');
     for i = 1:nEvents
-        weightVector(evtIhw{eventList(i)}) = weightVector(evtIhw{eventList(i)}) + ...
-            single(nodeWeights(i));
+        eventId = eventList(i);
+        eventEvidence = single(weightedIhw{eventId}) * single(maxCounts(eventId));
+        weightVector(evtIhw{eventId}) = weightVector(evtIhw{eventId}) + ...
+            single(nodeWeights(i)) * eventEvidence;
     end
-    weightVector = weightVector / sum(nodeWeights);
+    maximumWeight = max(weightVector);
+    if maximumWeight > 0
+        weightVector = weightVector / maximumWeight;
+    end
 
     if spatialSize(3) == 1
-        binaryMap = reshape(weightVector > 0.1, spatialSize(1), spatialSize(2));
-        binaryMap = imopen(binaryMap, strel('disk', 1, 0));
-        components = bwconncomp(binaryMap, 8);
+        coreMap = reshape(weightVector > coreSplitThreshold, spatialSize(1), spatialSize(2));
+        components = bwconncomp(coreMap, 8);
     else
-        binaryMap = reshape(weightVector > 0.1, spatialSize);
-        binaryMap = imopen(binaryMap, strel('sphere', 1));
-        components = bwconncomp(binaryMap, 26);
+        coreMap = reshape(weightVector > coreSplitThreshold, spatialSize);
+        components = bwconncomp(coreMap, 26);
     end
 
     componentLabels = zeros(nSpatialPixels, 1, 'uint16');
@@ -151,26 +157,47 @@ function [weightMap, componentLabels, nComponents] = buildStrictRegion( ...
     end
 
     largestArea = max(componentAreas);
-    retainedComponents = find(componentAreas > largestArea * areaRatioThreshold & ...
-        componentAreas > minimumPixels);
+    retainedComponents = find(componentAreas > largestArea * areaRatioThreshold);
     nComponents = numel(retainedComponents);
     for componentIndex = 1:nComponents
         componentLabels(components.PixelIdxList{retainedComponents(componentIndex)}) = componentIndex;
     end
 
-    weightVector(componentLabels == 0) = 0;
     weightMap = reshape(weightVector, spatialSize);
 end
 
-function branches = reassignEvents(eventList, evtIhw, componentLabels, nComponents, coverageThreshold)
+function regionMap = keepComponentRegion(weightMap, componentLabels, componentIndex, finalRegionThreshold)
+    finalMask = weightMap > finalRegionThreshold;
+    if ismatrix(finalMask)
+        components = bwconncomp(finalMask, 8);
+    else
+        components = bwconncomp(finalMask, 26);
+    end
+
+    retainedMask = false(size(finalMask));
+    corePixels = find(componentLabels == componentIndex);
+    for component = 1:components.NumObjects
+        currentPixels = components.PixelIdxList{component};
+        if any(ismember(currentPixels, corePixels))
+            retainedMask(currentPixels) = true;
+        end
+    end
+    regionMap = weightMap;
+    regionMap(~retainedMask) = 0;
+end
+
+function branches = reassignEvents(eventList, evtIhw, weightedIhw, maxCounts, ...
+    componentLabels, nComponents, coverageThreshold)
     branches = cell(nComponents, 1);
     for i = 1:numel(eventList)
-        eventPixels = evtIhw{eventList(i)};
+        eventId = eventList(i);
+        eventPixels = evtIhw{eventId};
+        eventEvidence = double(weightedIhw{eventId}) * double(maxCounts(eventId));
         componentMembership = componentLabels(eventPixels);
         coverages = zeros(nComponents, 1);
         for componentIndex = 1:nComponents
-            coverages(componentIndex) = nnz(componentMembership == componentIndex) / ...
-                numel(eventPixels);
+            coverages(componentIndex) = sum(eventEvidence(componentMembership == componentIndex)) / ...
+                sum(eventEvidence);
         end
         [maximumCoverage, bestComponent] = max(coverages);
         if maximumCoverage >= coverageThreshold

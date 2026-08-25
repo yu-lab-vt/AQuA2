@@ -25,7 +25,7 @@ function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds] = CFU_minMeasure(cfu_
     % retained region is a connected component of its weighted footprint
     % above 0.1, after weak bridges and small satellites are removed.
     [CFU_region,CFU_lst,parentIds] = cfu.refineSpatialCFUs( ...
-        CFU_lst,evtIhw,sz,minEvt,candidateParentIds);
+        CFU_lst,evtIhw,weightedIhw,cfu_pre.maxCounts,sz,minEvt,candidateParentIds);
 
 
     if(showResults)
