@@ -35,16 +35,18 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(cellfun(@(x) bwconncomp(x > 0.1, 8).NumObjects, regions), [1; 1]);
         end
 
-        function testFailedSplitPreservesOriginalCandidate(testCase)
+        function testPrimaryRegionRemovesSmallSatelliteButSupportRetainsIt(testCase)
             [evtIhw, weightedIhw, maxCounts, sz, satellitePixels] = ...
                 refineSpatialCFUsTest.satelliteFixture();
 
-            [regions, lists] = cfu.refineSpatialCFUs( ...
+            [regions, lists, ~, memberships] = cfu.refineSpatialCFUs( ...
                 {1}, evtIhw, weightedIhw, maxCounts, sz, 1);
 
             testCase.verifyEqual(lists, {1});
-            testCase.verifyTrue(all(regions{1}(satellitePixels) > 0.1));
-            testCase.verifyEqual(bwconncomp(regions{1} > 0.1, 8).NumObjects, 2);
+            testCase.verifyEqual(regions{1}(satellitePixels), zeros(numel(satellitePixels), 1, 'single'));
+            testCase.verifyEqual(bwconncomp(regions{1} > 0.1, 8).NumObjects, 1);
+            testCase.verifyTrue(all(ismember(satellitePixels, memberships{1}.SupportPixels)));
+            testCase.verifyFalse(any(ismember(satellitePixels, memberships{1}.PrimaryPixels)));
         end
 
         function testCoherentRegionRemainsOneCFU(testCase)
@@ -80,7 +82,7 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(lists, {1; 1});
             testCase.verifyEqual(parentIds, [41; 41]);
             testCase.verifyEqual(cellfun(@(x) x.EventID, memberships), [1; 1]);
-            testCase.verifyEqual(cellfun(@(x) x.Score, memberships), [0.5; 0.5], AbsTol=1e-12);
+            testCase.verifyEqual(cellfun(@(x) x.Score, memberships), [1; 1], AbsTol=1e-12);
             testCase.verifyEqual(cellfun(@(x) numel(x.SpatialPixels{1}), memberships), [49; 49]);
             testCase.verifyEqual(cellfun(@(x) bwconncomp(x > 0.1, 8).NumObjects, regions), [1; 1]);
         end

@@ -22,9 +22,9 @@ function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds,memberships] = CFU_min
     id = cellfun(@numel,CFU_lst)>=minEvt;
     candidateParentIds = find(id);
     CFU_lst = CFU_lst(id);
-    % Spatial refinement makes the final CFU definition explicit: the
-    % retained region is a connected component of its weighted footprint
-    % above 0.1, after weak bridges and small satellites are removed.
+    % Spatial refinement makes the final CFU definition explicit: prominent
+    % spatial basins determine PrimaryRegion, while SupportMap evidence is
+    % retained separately in the membership metadata.
     [CFU_region,CFU_lst,parentIds,memberships] = cfu.refineSpatialCFUs( ...
         CFU_lst,evtIhw,weightedIhw,cfu_pre.maxCounts,sz,minEvt,candidateParentIds);
 
