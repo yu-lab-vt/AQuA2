@@ -53,7 +53,8 @@ function CFURunGui(~,~,fCFU,f)
     end
 
     ff = waitbar(0,'Calculating cfu info');
-    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1,cfuMemberships1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    cfuMemberships1 = cfu.materializeCFUMemberships(cfuMemberships1,evtLst1,opts.sz);
     % End Developer Ver 2025/03/06
 
     waitbar(0.3,ff);
@@ -93,7 +94,7 @@ function CFURunGui(~,~,fCFU,f)
     cfuTimeWindow1 = false(nCFU,T);
     cfuNonTimeWindow1 = false(nCFU,T);
     
-    cfuInfo = cell(nCFU,13);
+    cfuInfo = cell(nCFU,14);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
@@ -224,6 +225,7 @@ function CFURunGui(~,~,fCFU,f)
         finalGrayEvts = initialGrayEvts(keepIdx);
         cfuInfo{i,10} = finalGrayEvts;
         cfuInfo{i,13} = cfuParentIds1(i); % original hierarchy cluster ID
+        cfuInfo{i,14} = cfuMemberships1{i}; % shared-event local masks and scores
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
     
@@ -250,9 +252,11 @@ function CFURunGui(~,~,fCFU,f)
     %%
     if(~opts.singleChannel)
         fts2 = getappdata(f, 'fts2'); 
+        evtLst2 = getappdata(f, 'evt2');
         alpha = str2double(fh.alpha2.Value);
         minNumEvt = str2double(fh.minNumEvt2.Value);
-        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);
+        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2,cfuMemberships2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);
+        cfuMemberships2 = cfu.materializeCFUMemberships(cfuMemberships2,evtLst2,opts.sz);
         waitbar(0.3,ff);
         title('CFU in channel 2');
         datOrg2 = getappdata(f, 'datOrg2');
@@ -270,7 +274,6 @@ function CFURunGui(~,~,fCFU,f)
 %             cfuDFFCurves2(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
         end
         waitbar(0.6,ff);
-        evtLst2 = getappdata(f, 'evt2');
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
         cfuOccurrence2 = false(numel(CFU_lst2),T);
@@ -289,7 +292,7 @@ function CFURunGui(~,~,fCFU,f)
         cfuTimeWindow2 = false(nCFU,T);
         cfuNonTimeWindow2 = false(nCFU,T);
         
-        cfuInfo = cell(nCFU,13);
+        cfuInfo = cell(nCFU,14);
         
         for i = 1:nCFU
             pix = find(cfuRegions2{i}>0.1);
@@ -324,6 +327,7 @@ function CFURunGui(~,~,fCFU,f)
             cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
             cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
             cfuInfo{i,13} = cfuParentIds2(i); % original hierarchy cluster ID
+            cfuInfo{i,14} = cfuMemberships2{i}; % shared-event local masks and scores
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
         

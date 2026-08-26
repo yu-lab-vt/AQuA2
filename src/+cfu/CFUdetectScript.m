@@ -8,7 +8,8 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
     end
     alpha = cfuOpts.cfuDetect.overlapThr1;
     minNumEvt = cfuOpts.cfuDetect.minNumEvt1;
-    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1] = cfu.CFU_minMeasure(cfu_pre1,true(numel(cfu_pre1.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);
+    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1,cfuMemberships1] = cfu.CFU_minMeasure(cfu_pre1,true(numel(cfu_pre1.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);
+    cfuMemberships1 = cfu.materializeCFUMemberships(cfuMemberships1,evtLst1,opts.sz);
     datOrg1 = res.datOrg1;
     [H,W,L,T] = size(datOrg1);
     datVec = single(reshape(datOrg1,[],T));
@@ -40,7 +41,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
     cfuTimeWindow1 = false(nCFU,T);
     cfuNonTimeWindow1 = false(nCFU,T);
     
-    cfuInfo = cell(nCFU,13);
+    cfuInfo = cell(nCFU,14);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
@@ -75,6 +76,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
         cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
         cfuInfo{i,13} = cfuParentIds1(i); % original hierarchy cluster ID
+        cfuInfo{i,14} = cfuMemberships1{i}; % shared-event local masks and scores
     end
     clear cfuMapVideo;
     cfuInfo1 = cfuInfo;
@@ -82,7 +84,8 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
     if(~opts.singleChannel)
         alpha = cfuOpts.cfuDetect.overlapThr2;
         minNumEvt = cfuOpts.cfuDetect.minNumEvt2;
-        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);
+        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2,cfuMemberships2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),[],opts.sz,alpha,minNumEvt,false);
+        cfuMemberships2 = cfu.materializeCFUMemberships(cfuMemberships2,evtLst2,opts.sz);
         datOrg2 = res.datOrg2;
         datVec = single(reshape(datOrg2,[],T));
         clear datOrg2;
@@ -112,7 +115,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         cfuTimeWindow2 = false(nCFU,T);
         cfuNonTimeWindow2 = false(nCFU,T);
         
-        cfuInfo = cell(nCFU,13);
+        cfuInfo = cell(nCFU,14);
         
         for i = 1:nCFU
             pix = find(cfuRegions2{i}>0.1);
@@ -147,6 +150,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
             cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
             cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);
             cfuInfo{i,13} = cfuParentIds2(i); % original hierarchy cluster ID
+            cfuInfo{i,14} = cfuMemberships2{i}; % shared-event local masks and scores
         end
         cfuInfo2 = cfuInfo;
     else

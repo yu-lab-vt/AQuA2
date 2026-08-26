@@ -1,4 +1,4 @@
-function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds] = CFU_minMeasure(cfu_pre,select,datPro,sz,thr,minEvt,showResults)
+function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds,memberships] = CFU_minMeasure(cfu_pre,select,datPro,sz,thr,minEvt,showResults)
 
     if(~exist('showResults','var'))
         showResults = false;
@@ -15,6 +15,7 @@ function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds] = CFU_minMeasure(cfu_
         CFU_region = []; 
         CFU_lst = [];
         parentIds = zeros(0,1);
+        memberships = {};
         return;
     end
     
@@ -24,7 +25,7 @@ function [CFU_region,CFU_lst,weightedIhw,evtIhw,parentIds] = CFU_minMeasure(cfu_
     % Spatial refinement makes the final CFU definition explicit: the
     % retained region is a connected component of its weighted footprint
     % above 0.1, after weak bridges and small satellites are removed.
-    [CFU_region,CFU_lst,parentIds] = cfu.refineSpatialCFUs( ...
+    [CFU_region,CFU_lst,parentIds,memberships] = cfu.refineSpatialCFUs( ...
         CFU_lst,evtIhw,weightedIhw,cfu_pre.maxCounts,sz,minEvt,candidateParentIds);
 
 
