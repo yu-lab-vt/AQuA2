@@ -99,6 +99,18 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             testCase.verifyGreaterThan(regions{1}(corePixel), 0.1);
         end
 
+        function testBackgroundBarrierDoesNotConsumeValidSupport(testCase)
+            [evtIhw, weightedIhw, maxCounts, sz, boundaryPixel] = ...
+                refineSpatialCFUsTest.validSupportFixture();
+
+            [regions, lists] = cfu.refineSpatialCFUs( ...
+                {1}, evtIhw, weightedIhw, maxCounts, sz, 1);
+
+            testCase.verifyEqual(lists, {1});
+            testCase.verifyGreaterThan(regions{1}(boundaryPixel), 0.1);
+            testCase.verifyEqual(bwconncomp(regions{1} > 0.1, 8).NumObjects, 1);
+        end
+
         function testOneEventCanBelongToTwoCFUs(testCase)
             [evtIhw, weightedIhw, maxCounts, sz] = refineSpatialCFUsTest.sharedEventFixture();
 
@@ -186,6 +198,17 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             maxCounts = 1;
             boundaryPixel = sub2ind(sz(1:3), 3, 3, 1);
             corePixel = sub2ind(sz(1:3), 9, 9, 1);
+        end
+
+        function [evtIhw, weightedIhw, maxCounts, sz, boundaryPixel] = validSupportFixture()
+            sz = [24 24 1 1];
+            outerPixels = refineSpatialCFUsTest.rectanglePixels(sz, 3:15, 3:15);
+            corePixels = refineSpatialCFUsTest.rectanglePixels(sz, 6:12, 6:12);
+            evtIhw = {outerPixels};
+            weightedIhw = {0.15 * ones(numel(outerPixels),1)};
+            weightedIhw{1}(ismember(outerPixels, corePixels)) = 1;
+            maxCounts = 1;
+            boundaryPixel = sub2ind(sz(1:3), 3, 3, 1);
         end
 
         function pixels = rectanglePixels(sz, rows, columns)

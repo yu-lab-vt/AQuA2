@@ -163,12 +163,12 @@ function [basinLabels, nBasins] = extractSpatialBasins(weightMap, primarySupport
         return;
     end
 
-    % The outside of the support region is an explicit background marker.
-    % Together with watershed ridges, it forms an immutable dam: a basin
-    % cannot later grow around another seed through low-evidence pixels.
-    backgroundDamMask = ~primarySupportMask;
-    imposedMap = imimposemin(-smoothedMap, seedMask | backgroundDamMask, connectivity);
-    watershedLabels = watershed(imposedMap, connectivity);
+    % Segment each support component independently.  Its exterior is a high
+    % elevation barrier, not a competing background minimum.  This makes a
+    % true dam at the support boundary without allowing the background basin
+    % to invade and consume a low-but-valid foreground region.
+    watershedLabels = watershedWithinSupportComponents( ...
+        smoothedMap, primarySupportMask, seedMask, connectivity);
     [initialLabels, peaks] = labelsContainingSeeds(watershedLabels, seedMask, smoothedMap);
     if isempty(peaks)
         return;
@@ -181,6 +181,34 @@ function [basinLabels, nBasins] = extractSpatialBasins(weightMap, primarySupport
     % normal isolated CFU does not lose a one-pixel outer rim.
     basinLabels = restoreExteriorRims(initialLabels, primarySupportMask);
     nBasins = double(max(basinLabels(:)));
+end
+
+function labels = watershedWithinSupportComponents(smoothedMap, supportMask, seedMask, connectivity)
+    labels = zeros(size(supportMask), 'uint16');
+    components = bwconncomp(supportMask, connectivity);
+    nextLabel = 0;
+    for componentIndex = 1:components.NumObjects
+        componentMask = false(size(supportMask));
+        componentPixels = components.PixelIdxList{componentIndex};
+        componentMask(componentPixels) = true;
+        componentSeeds = seedMask & componentMask;
+        if ~any(componentSeeds(:))
+            continue;
+        end
+
+        elevation = ones(size(smoothedMap), 'like', smoothedMap);
+        elevation(componentMask) = -smoothedMap(componentMask);
+        imposedElevation = imimposemin(elevation, componentSeeds, connectivity);
+        imposedElevation(~componentMask) = 1;
+        componentLabels = watershed(imposedElevation, connectivity);
+        componentLabels(~componentMask) = 0;
+        seedLabels = unique(componentLabels(componentSeeds));
+        seedLabels(seedLabels == 0) = [];
+        for seedIndex = 1:numel(seedLabels)
+            nextLabel = nextLabel + 1;
+            labels(componentLabels == seedLabels(seedIndex)) = nextLabel;
+        end
+    end
 end
 
 function [labels, peaks] = labelsContainingSeeds(watershedLabels, seedMask, smoothedMap)
