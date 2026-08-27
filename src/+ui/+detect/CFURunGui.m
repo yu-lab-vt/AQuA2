@@ -79,28 +79,15 @@ function CFURunGui(~,~,fCFU,f)
     % rising time judgement
     thrVec = 0.4:0.1:0.6;
     cfuOccurrence1 = false(numel(CFU_lst1),T);
-    cfuMapVideo = zeros(H,W,L,T,'uint16');
     nCFU = numel(cfuRegions1);
-    for i = 1:nCFU
-        evtInCFU = CFU_lst1{i};
-        for j = 1:numel(evtInCFU)
-            label = evtInCFU(j);
-            cfuMapVideo(evtLst1{label}) = i;
-        end
-    end
+    [cfuTimeWindow1, cfuNonTimeWindow1, overlappingCFUs1] = ...
+        cfu.membershipTimeWindows(cfuMemberships1, cfuRegions1, opts.sz);
     waitbar(0.9,ff);
-    
-    cfuMapVideo = reshape(cfuMapVideo,[],T);
-    cfuTimeWindow1 = false(nCFU,T);
-    cfuNonTimeWindow1 = false(nCFU,T);
     
     cfuInfo = cell(nCFU,14);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
-        cfuTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-        cfuNonTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-        cfuNonTimeWindow1(i,cfuTimeWindow1(i,:)) = false;
         evtInCFU = CFU_lst1{i};
         x0 = cfuCurves1(i,:);
         x0 = movmean(x0,2);
@@ -137,15 +124,14 @@ function CFURunGui(~,~,fCFU,f)
         % --- 第10列：使用“精确逐帧 IoU”筛选灰色事件（包含自身筛查与内部去重） ---
         iouThr = 0.5; % 逐帧重叠率 > 50% 即判定为同一生理活动的碎片
         iouThr2 = 0.1;
-        overlappingCFUs = unique(cfuMapVideo(pix, :));
-        overlappingCFUs(overlappingCFUs == 0) = [];
-        overlappingCFUs(overlappingCFUs == i) = [];
+        overlappingCFUs = overlappingCFUs1{i};
         
         initialGrayEvts = [];
         grayTimeFramesCell = {}; % 缓存灰色事件的精确活跃帧，用于后续内部两两比较
         
         for oCfuIdx = overlappingCFUs(:)'
-            evtsInOther = CFU_lst1{oCfuIdx};
+            evtsInOther = setdiff(cfuMemberships1{oCfuIdx}.EventID, ...
+                cfuMemberships1{i}.EventID, 'stable');
             for eIdx = 1:numel(evtsInOther)
                 evID = evtsInOther(eIdx);
                 
@@ -277,28 +263,14 @@ function CFURunGui(~,~,fCFU,f)
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
         cfuOccurrence2 = false(numel(CFU_lst2),T);
-        cfuMapVideo = zeros(H,W,L,T,'uint16');
         nCFU = numel(cfuRegions2);
-        for i = 1:numel(CFU_lst2)
-            evtInCFU = CFU_lst2{i};
-            for j = 1:numel(evtInCFU)
-                label = evtInCFU(j);
-                cfuMapVideo(evtLst2{label}) = i;
-            end
-        end
+        [cfuTimeWindow2, cfuNonTimeWindow2] = ...
+            cfu.membershipTimeWindows(cfuMemberships2, cfuRegions2, opts.sz);
         waitbar(0.9,ff);
-
-        cfuMapVideo = reshape(cfuMapVideo,[],T);
-        cfuTimeWindow2 = false(nCFU,T);
-        cfuNonTimeWindow2 = false(nCFU,T);
         
         cfuInfo = cell(nCFU,14);
         
         for i = 1:nCFU
-            pix = find(cfuRegions2{i}>0.1);
-            cfuTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-            cfuNonTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-            cfuNonTimeWindow2(i,cfuTimeWindow2(i,:)) = false;
             evtInCFU = CFU_lst2{i};
             x0 = cfuCurves2(i,:);
             x0 = movmean(x0,2);

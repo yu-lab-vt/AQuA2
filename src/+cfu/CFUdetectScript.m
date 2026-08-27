@@ -27,27 +27,13 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
     % rising time judgement
     thrVec = 0.4:0.1:0.6;
     cfuOccurrence1 = false(numel(CFU_lst1),T);
-    cfuMapVideo = zeros(H,W,L,T,'uint16');
     nCFU = numel(cfuRegions1);
-    for i = 1:nCFU
-        evtInCFU = CFU_lst1{i};
-        for j = 1:numel(evtInCFU)
-            label = evtInCFU(j);
-            cfuMapVideo(evtLst1{label}) = i;
-        end
-    end
-    
-    cfuMapVideo = reshape(cfuMapVideo,[],T);
-    cfuTimeWindow1 = false(nCFU,T);
-    cfuNonTimeWindow1 = false(nCFU,T);
+    [cfuTimeWindow1, cfuNonTimeWindow1] = ...
+        cfu.membershipTimeWindows(cfuMemberships1, cfuRegions1, opts.sz);
     
     cfuInfo = cell(nCFU,14);
     
     for i = 1:nCFU
-        pix = find(cfuRegions1{i}>0.1);
-        cfuTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-        cfuNonTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-        cfuNonTimeWindow1(i,cfuTimeWindow1(i,:)) = false;
         evtInCFU = CFU_lst1{i};
         x0 = cfuCurves1(i,:);
         x0 = movmean(x0,2);
@@ -78,7 +64,6 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         cfuInfo{i,13} = cfuParentIds1(i); % original hierarchy cluster ID
         cfuInfo{i,14} = cfuMemberships1{i}; % shared-event local masks and scores
     end
-    clear cfuMapVideo;
     cfuInfo1 = cfuInfo;
 
     if(~opts.singleChannel)
@@ -102,26 +87,13 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
         cfuOccurrence2 = false(numel(CFU_lst2),T);
-        cfuMapVideo = zeros(H,W,L,T,'uint16');
         nCFU = numel(cfuRegions2);
-        for i = 1:numel(CFU_lst2)
-            evtInCFU = CFU_lst2{i};
-            for j = 1:numel(evtInCFU)
-                label = evtInCFU(j);
-                cfuMapVideo(evtLst2{label}) = i;
-            end
-        end
-        cfuMapVideo = reshape(cfuMapVideo,[],T);
-        cfuTimeWindow2 = false(nCFU,T);
-        cfuNonTimeWindow2 = false(nCFU,T);
+        [cfuTimeWindow2, cfuNonTimeWindow2] = ...
+            cfu.membershipTimeWindows(cfuMemberships2, cfuRegions2, opts.sz);
         
         cfuInfo = cell(nCFU,14);
         
         for i = 1:nCFU
-            pix = find(cfuRegions2{i}>0.1);
-            cfuTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-            cfuNonTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-            cfuNonTimeWindow2(i,cfuTimeWindow2(i,:)) = false;
             evtInCFU = CFU_lst2{i};
             x0 = cfuCurves2(i,:);
             x0 = movmean(x0,2);
