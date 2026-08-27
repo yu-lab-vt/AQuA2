@@ -123,6 +123,8 @@ function [weightMap, supportMask, primarySupportMask, basinLabels, nBasins] = ..
 
     [basinLabels, nBasins] = extractSpatialBasins(weightMap, ...
         primarySupportMask, parameters);
+    primarySupportMask = retainSeededSupportComponents( ...
+        primarySupportMask, basinLabels);
 end
 
 function primarySupportMask = removeSmallSupportComponents(supportMask, areaRatio)
@@ -161,7 +163,11 @@ function [basinLabels, nBasins] = extractSpatialBasins(weightMap, primarySupport
         return;
     end
 
-    imposedMap = imimposemin(-smoothedMap, seedMask | ~primarySupportMask, connectivity);
+    % The outside of the support region is an explicit background marker.
+    % Together with watershed ridges, it forms an immutable dam: a basin
+    % cannot later grow around another seed through low-evidence pixels.
+    backgroundDamMask = ~primarySupportMask;
+    imposedMap = imimposemin(-smoothedMap, seedMask | backgroundDamMask, connectivity);
     watershedLabels = watershed(imposedMap, connectivity);
     [initialLabels, peaks] = labelsContainingSeeds(watershedLabels, seedMask, smoothedMap);
     if isempty(peaks)
@@ -170,7 +176,10 @@ function [basinLabels, nBasins] = extractSpatialBasins(weightMap, primarySupport
 
     initialLabels = mergeShallowBasins(initialLabels, smoothedMap, peaks, ...
         primarySupportMask, parameters.minimumSaddleDrop);
-    basinLabels = assignSupportPixelsToBasins(primarySupportMask, initialLabels, connectivity);
+    % Preserve only ridges between distinct basins as dams.  A ridge facing
+    % the exterior background belongs to its sole neighbouring basin, so a
+    % normal isolated CFU does not lose a one-pixel outer rim.
+    basinLabels = restoreExteriorRims(initialLabels, primarySupportMask);
     nBasins = double(max(basinLabels(:)));
 end
 
@@ -219,32 +228,32 @@ function labels = mergeShallowBasins(labels, smoothedMap, peaks, supportMask, sa
     labels = mergedLabels;
 end
 
-function labels = assignSupportPixelsToBasins(supportMask, initialLabels, connectivity)
-    labels = zeros(size(initialLabels), 'uint16');
-    components = bwconncomp(supportMask, connectivity);
-    for componentIndex = 1:components.NumObjects
-        componentPixels = components.PixelIdxList{componentIndex};
-        componentMask = false(size(supportMask));
-        componentMask(componentPixels) = true;
-        componentBasins = unique(initialLabels(componentPixels));
-        componentBasins(componentBasins == 0) = [];
-        bestDistance = inf(size(supportMask));
-        for basinIndex = componentBasins(:)'
-            basinMask = initialLabels == basinIndex;
-            distanceMap = bwdist(basinMask);
-            update = componentMask & distanceMap < bestDistance;
-            labels(update) = basinIndex;
-            bestDistance(update) = distanceMap(update);
-        end
-    end
-end
-
 function parent = joinSets(parent, firstIndex, secondIndex)
     firstRoot = findSet(parent, firstIndex);
     secondRoot = findSet(parent, secondIndex);
     if firstRoot ~= secondRoot
         parent(secondRoot) = firstRoot;
     end
+end
+
+function labels = restoreExteriorRims(labels, supportMask)
+    ridgeMask = supportMask & labels == 0;
+    nBasins = double(max(labels(:)));
+    if nBasins == 0 || ~any(ridgeMask(:))
+        return;
+    end
+
+    neighborhood = true(neighborhoodSizeFor(labels));
+    neighbouringLabel = zeros(size(labels), 'uint16');
+    touchesSeveralBasins = false(size(labels));
+    for basinIndex = 1:nBasins
+        touchesBasin = ridgeMask & imdilate(labels == basinIndex, neighborhood);
+        touchesSeveralBasins = touchesSeveralBasins | ...
+            (touchesBasin & neighbouringLabel > 0 & neighbouringLabel ~= basinIndex);
+        neighbouringLabel(touchesBasin & neighbouringLabel == 0) = basinIndex;
+    end
+    labels(ridgeMask & ~touchesSeveralBasins & neighbouringLabel > 0) = ...
+        neighbouringLabel(ridgeMask & ~touchesSeveralBasins & neighbouringLabel > 0);
 end
 
 function root = findSet(parent, index)
@@ -319,6 +328,33 @@ function membership = addSpatialMaps(membership, weightMap, supportMask, primary
     membership.SupportWeights = weightMap(supportMask);
     membership.PrimaryPixels = find(primaryMask);
     membership.SpatialSize = size(weightMap);
+end
+
+function primaryMask = retainSeededSupportComponents(primaryMask, basinLabels)
+    connectivity = connectivityFor(primaryMask);
+    components = bwconncomp(primaryMask, connectivity);
+    if components.NumObjects == 0
+        return;
+    end
+
+    retained = false(size(primaryMask));
+    for componentIndex = 1:components.NumObjects
+        componentPixels = components.PixelIdxList{componentIndex};
+        if any(basinLabels(componentPixels) > 0)
+            retained(componentPixels) = true;
+        end
+    end
+    if any(retained(:))
+        primaryMask = retained;
+        return;
+    end
+
+    % If all peaks were rejected, preserve only the dominant component
+    % rather than returning a disconnected footprint with satellites.
+    componentAreas = cellfun(@numel, components.PixelIdxList);
+    [~, largestIndex] = max(componentAreas);
+    primaryMask = false(size(primaryMask));
+    primaryMask(components.PixelIdxList{largestIndex}) = true;
 end
 
 function connectivity = connectivityFor(array)

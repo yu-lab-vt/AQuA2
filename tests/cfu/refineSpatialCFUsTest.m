@@ -22,6 +22,19 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(cellfun(@(x) bwconncomp(x > 0.1, 8).NumObjects, regions), [1; 1]);
         end
 
+        function testWatershedDamKeepsWeakBridgeOutOfBothPrimaryRegions(testCase)
+            [evtIhw, weightedIhw, maxCounts, sz, bridgePixels] = ...
+                refineSpatialCFUsTest.bridgeFixture();
+
+            [regions, lists] = cfu.refineSpatialCFUs( ...
+                {[1 2]}, evtIhw, weightedIhw, maxCounts, sz, 1);
+            damPixels = bridgePixels(regions{1}(bridgePixels) <= 0.1 & ...
+                regions{2}(bridgePixels) <= 0.1);
+
+            testCase.verifyEqual(numel(lists), 2);
+            testCase.verifyNotEmpty(damPixels);
+        end
+
         function testCFUMinMeasureAppliesSpatialRefinement(testCase)
             [evtIhw, weightedIhw, maxCounts, sz] = refineSpatialCFUsTest.bridgeFixture();
             cfuPre = struct('s_t0', [1 2 1], 'weightedIhw', {weightedIhw}, ...
@@ -45,6 +58,19 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(lists, {1});
             testCase.verifyEqual(regions{1}(satellitePixels), zeros(numel(satellitePixels), 1, 'single'));
             testCase.verifyEqual(bwconncomp(regions{1} > 0.1, 8).NumObjects, 1);
+            testCase.verifyTrue(all(ismember(satellitePixels, memberships{1}.SupportPixels)));
+            testCase.verifyFalse(any(ismember(satellitePixels, memberships{1}.PrimaryPixels)));
+        end
+
+        function testPrimaryRegionRemovesLargeSatelliteWithoutSeed(testCase)
+            [evtIhw, weightedIhw, maxCounts, sz, satellitePixels] = ...
+                refineSpatialCFUsTest.unseededSatelliteFixture();
+
+            [regions, lists, ~, memberships] = cfu.refineSpatialCFUs( ...
+                {[1 2 3 4]}, evtIhw, weightedIhw, maxCounts, sz, 1);
+
+            testCase.verifyEqual(lists, {[1 2 3 4]});
+            testCase.verifyEqual(regions{1}(satellitePixels), zeros(numel(satellitePixels), 1, 'single'));
             testCase.verifyTrue(all(ismember(satellitePixels, memberships{1}.SupportPixels)));
             testCase.verifyFalse(any(ismember(satellitePixels, memberships{1}.PrimaryPixels)));
         end
@@ -101,7 +127,7 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
     end
 
     methods (Static, Access = private)
-        function [evtIhw, weightedIhw, maxCounts, sz] = bridgeFixture()
+        function [evtIhw, weightedIhw, maxCounts, sz, bridge] = bridgeFixture()
             sz = [24 24 1 1];
             leftCore = refineSpatialCFUsTest.rectanglePixels(sz, 4:10, 3:8);
             rightCore = refineSpatialCFUsTest.rectanglePixels(sz, 4:10, 17:22);
@@ -120,6 +146,16 @@ classdef refineSpatialCFUsTest < matlab.unittest.TestCase
             evtIhw = {unique([corePixels; satellitePixels])};
             weightedIhw = {ones(numel(evtIhw{1}),1)};
             maxCounts = 1;
+        end
+
+        function [evtIhw, weightedIhw, maxCounts, sz, satellitePixels] = unseededSatelliteFixture()
+            sz = [30 30 1 1];
+            mainPixels = refineSpatialCFUsTest.rectanglePixels(sz, 4:12, 4:12);
+            satellitePixels = refineSpatialCFUsTest.rectanglePixels(sz, 20:24, 20:24);
+            evtIhw = {unique([mainPixels; satellitePixels]), mainPixels, mainPixels, mainPixels};
+            weightedIhw = {ones(numel(evtIhw{1}),1), ones(numel(mainPixels),1), ...
+                ones(numel(mainPixels),1), ones(numel(mainPixels),1)};
+            maxCounts = ones(4,1);
         end
 
         function [evtIhw, weightedIhw, maxCounts, sz] = coherentFixture()
