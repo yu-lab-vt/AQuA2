@@ -51,6 +51,45 @@ classdef mergeSimilarCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(lists, {[1 2]; 3});
             testCase.verifyEqual(parents, [1; 3]);
         end
+
+        function testOnePixelDilationAllowsAdjacentRegionsToMerge(testCase)
+            [regions, lists, parents, memberships, curves] = ...
+                mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
+            regions{2} = mergeSimilarCFUsTest.region([1 2], [3 4]);
+
+            [regions, lists, parents, ~, didMerge] = cfu.mergeSimilarCFUs( ...
+                regions, lists, parents, memberships, curves, []);
+
+            testCase.verifyTrue(didMerge);
+            testCase.verifyNumElements(regions, 1);
+            testCase.verifyEqual(lists, {[1 2]});
+            testCase.verifyEqual(parents, 10);
+        end
+
+        function testCrossCorrelationSupportsMultiPeakCurves(testCase)
+            [regions, lists, parents, memberships, ~] = ...
+                mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
+            curves = [0 1.00 0.99 0 1.01 0.99 0; ...
+                0 1.01 0.99 0 1.00 0.99 0];
+
+            [regions, ~, ~, ~, didMerge] = cfu.mergeSimilarCFUs( ...
+                regions, lists, parents, memberships, curves, []);
+
+            testCase.verifyTrue(didMerge);
+            testCase.verifyNumElements(regions, 1);
+        end
+
+        function testLargePositiveAUCDifferenceRejectsMerge(testCase)
+            [regions, lists, parents, memberships, ~] = ...
+                mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
+            curves = [0 1 3 1 0; 0 0.2 0.6 0.2 0];
+
+            [regions, ~, ~, ~, didMerge] = cfu.mergeSimilarCFUs( ...
+                regions, lists, parents, memberships, curves, []);
+
+            testCase.verifyFalse(didMerge);
+            testCase.verifyNumElements(regions, 2);
+        end
     end
 
     methods (Static, Access = private)
@@ -66,8 +105,8 @@ classdef mergeSimilarCFUsTest < matlab.unittest.TestCase
 
         function [regions, lists, parents, memberships, curves] = chainFixture()
             first = mergeSimilarCFUsTest.region([1 2], [1 2]);
-            second = mergeSimilarCFUsTest.region([2 3], [2 3]);
-            third = mergeSimilarCFUsTest.region([3 4], [3 4]);
+            second = mergeSimilarCFUsTest.region([1 2], [2 3 4]);
+            third = mergeSimilarCFUsTest.region([1 2], [4 5]);
             regions = {first; second; third};
             lists = {1; 2; 3};
             parents = [1; 2; 3];

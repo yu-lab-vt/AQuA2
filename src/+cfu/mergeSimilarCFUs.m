@@ -1,10 +1,11 @@
 function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
     mergeSimilarCFUs(cfuRegions, cfuLists, parentIds, memberships, dffCurves, parameters)
 %MERGESIMILARCFUS Conservatively merge likely duplicate final CFUs.
-%   Candidate pairs must overlap directly, have sufficient containment,
-%   nearly identical DFF curves, and closely aligned peak frames.  Sibling
-%   basins from one hierarchy parent are excluded by default.  Valid pairs
-%   are merged with complete linkage, preventing chain-style over-merging.
+%   Candidate pairs must contact after a small spatial dilation, have highly
+%   similar normalized cross-correlation, comparable positive DFF AUC, and
+%   a small cross-correlation lag. Sibling basins from one hierarchy parent
+%   are excluded by default. Valid pairs are merged with complete linkage,
+%   preventing chain-style over-merging.
 
     if nargin < 6 || isempty(parameters)
         parameters = cfu.defaultCFUMergeParameters();
@@ -19,7 +20,6 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
     similarityMatrix = -inf(nCFU, nCFU);
     regionMasks = cellfun(@(region) region > 0.1, cfuRegions, ...
         'UniformOutput', false);
-    regionAreas = cellfun(@nnz, regionMasks);
 
     for firstIndex = 1:(nCFU - 1)
         for secondIndex = (firstIndex + 1):nCFU
@@ -27,25 +27,25 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
                     parentIds(firstIndex) == parentIds(secondIndex)
                 continue;
             end
-            intersectionArea = nnz(regionMasks{firstIndex} & regionMasks{secondIndex});
-            containment = intersectionArea / max(min(regionAreas(firstIndex), ...
-                regionAreas(secondIndex)), 1);
-            if intersectionArea < parameters.MinimumOverlapPixels || ...
-                    containment < parameters.MinimumContainment
+            dilationKernel = dilationKernelFor(regionMasks{firstIndex}, ...
+                parameters.SpatialDilationRadius);
+            contactArea = nnz(imdilate(regionMasks{firstIndex}, dilationKernel) & ...
+                regionMasks{secondIndex});
+            if contactArea < parameters.MinimumOverlapPixels
                 continue;
             end
 
-            [curveCorrelation, peakLag, peakHeightRatio] = curveFeatures( ...
+            [crossCorrelation, crossCorrelationLag, aucRatio] = curveFeatures( ...
                 dffCurves(firstIndex,:), dffCurves(secondIndex,:));
-            if curveCorrelation < parameters.MinimumCurveCorrelation || ...
-                    peakLag > parameters.MaximumPeakLagFrames || ...
-                    peakHeightRatio < parameters.MinimumPeakHeightRatio
+            if crossCorrelation < parameters.MinimumCrossCorrelation || ...
+                    crossCorrelationLag > parameters.MaximumCrossCorrelationLagFrames || ...
+                    aucRatio < parameters.MinimumPositiveAUCRatio
                 continue;
             end
             edgeMatrix(firstIndex, secondIndex) = true;
             edgeMatrix(secondIndex, firstIndex) = true;
-            similarityMatrix(firstIndex, secondIndex) = curveCorrelation;
-            similarityMatrix(secondIndex, firstIndex) = curveCorrelation;
+            similarityMatrix(firstIndex, secondIndex) = crossCorrelation;
+            similarityMatrix(secondIndex, firstIndex) = crossCorrelation;
         end
     end
 
@@ -59,24 +59,41 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
         groups, cfuRegions, cfuLists, parentIds, memberships);
 end
 
-function [curveCorrelation, peakLag, peakHeightRatio] = curveFeatures(firstCurve, secondCurve)
+function [crossCorrelation, crossCorrelationLag, aucRatio] = curveFeatures(firstCurve, secondCurve)
     firstCurve = double(firstCurve(:));
     secondCurve = double(secondCurve(:));
     if numel(firstCurve) ~= numel(secondCurve) || ...
             any(~isfinite(firstCurve)) || any(~isfinite(secondCurve)) || ...
             std(firstCurve) == 0 || std(secondCurve) == 0
-        curveCorrelation = -inf;
-        peakLag = inf;
-        peakHeightRatio = 0;
+        crossCorrelation = -inf;
+        crossCorrelationLag = inf;
+        aucRatio = 0;
         return;
     end
-    correlationMatrix = corrcoef(firstCurve, secondCurve);
-    curveCorrelation = correlationMatrix(1,2);
-    [firstPeak, firstPeakFrame] = max(firstCurve);
-    [secondPeak, secondPeakFrame] = max(secondCurve);
-    peakLag = abs(firstPeakFrame - secondPeakFrame);
-    peakHeightRatio = min(abs(firstPeak), abs(secondPeak)) / ...
-        max([abs(firstPeak), abs(secondPeak), eps]);
+    firstCentered = firstCurve - mean(firstCurve);
+    secondCentered = secondCurve - mean(secondCurve);
+    [crossCorrelationValues, lags] = xcorr(firstCentered, secondCentered, 'coeff');
+    [crossCorrelation, bestIndex] = max(crossCorrelationValues);
+    crossCorrelationLag = abs(lags(bestIndex));
+    firstAUC = trapz(max(firstCurve, 0));
+    secondAUC = trapz(max(secondCurve, 0));
+    aucRatio = min(firstAUC, secondAUC) / max([firstAUC, secondAUC, eps]);
+end
+
+function kernel = dilationKernelFor(regionMask, radius)
+    if radius <= 0
+        if ismatrix(regionMask) || size(regionMask, 3) == 1
+            kernel = true(1, 1);
+        else
+            kernel = true(1, 1, 1);
+        end
+        return;
+    end
+    if ismatrix(regionMask) || size(regionMask, 3) == 1
+        kernel = true(2 * radius + 1, 2 * radius + 1);
+    else
+        kernel = true(2 * radius + 1, 2 * radius + 1, 2 * radius + 1);
+    end
 end
 
 function groups = completeLinkageGroups(edgeMatrix, similarityMatrix)
