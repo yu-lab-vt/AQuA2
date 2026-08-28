@@ -64,15 +64,15 @@ function CFURunGui(~,~,fCFU,f)
     datVec = reshape(datOrg1,[],T);
     datVec = datVec*(opts.maxValueDat1 - opts.minValueDat1) + opts.minValueDat1;
     clear datOrg1;
-    cfuCurves1 = zeros(numel(cfuRegions1),T);
-    cfuDFFCurves1 = zeros(numel(cfuRegions1),T);
-    for i = 1:numel(cfuRegions1)
-        weightMap = cfuRegions1{i};
-        weightMap = weightMap(:);
-        idx = find(weightMap>0);
-        cfuCurves1(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
-        cfuDFFCurves1(i,:) = getdFF(cfuCurves1(i,:), opts.movAvgWin, opts.cut);
-%         cfuDFCurves1(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
+    [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
+        cfuRegions1, datVec, opts.movAvgWin, opts.cut);
+    mergeParameters = cfu.defaultCFUMergeParameters();
+    [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, didMerge1] = ...
+        cfu.mergeSimilarCFUs(cfuRegions1, CFU_lst1, cfuParentIds1, ...
+        cfuMemberships1, cfuDFFCurves1, mergeParameters);
+    if didMerge1
+        [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
+            cfuRegions1, datVec, opts.movAvgWin, opts.cut);
     end
     waitbar(0.6,ff);
     
@@ -249,15 +249,15 @@ function CFURunGui(~,~,fCFU,f)
         datVec = reshape(datOrg2,[],T);
         datVec = datVec*(opts.maxValueDat2 - opts.minValueDat2) + opts.minValueDat2;
         clear datOrg2;
-        cfuCurves2 = zeros(numel(cfuRegions2),T);
-        cfuDFFCurves2 = zeros(numel(cfuRegions2),T);
-        for i = 1:numel(cfuRegions2)
-            weightMap = cfuRegions2{i};
-            weightMap = weightMap(:);
-            idx = find(weightMap>0);
-            cfuCurves2(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
-            cfuDFFCurves2(i,:) = getdFF(cfuCurves2(i,:), opts.movAvgWin, opts.cut);
-%             cfuDFFCurves2(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
+        [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
+            cfuRegions2, datVec, opts.movAvgWin, opts.cut);
+        mergeParameters = cfu.defaultCFUMergeParameters();
+        [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, didMerge2] = ...
+            cfu.mergeSimilarCFUs(cfuRegions2, CFU_lst2, cfuParentIds2, ...
+            cfuMemberships2, cfuDFFCurves2, mergeParameters);
+        if didMerge2
+            [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
+                cfuRegions2, datVec, opts.movAvgWin, opts.cut);
         end
         waitbar(0.6,ff);
         % rising time judgement
@@ -358,36 +358,6 @@ function CFURunGui(~,~,fCFU,f)
     ui.updtCFUint([],[],fCFU,true);
     
     delete(ff);
-end
-
-function dff = getdFF(x0,window,cut)
-    datMA = movmean(x0,window);
-    T = numel(datMA);
-    step = round(0.5*cut);
-    nSegment = max(1,ceil(T/step)-1);
-
-    F0 = zeros(size(x0));
-    for k = 1:nSegment
-        t0 = 1 + (k-1)*step;
-        t1 = min(T,t0+cut);
-        
-        [curMinV,curMinT] = min(datMA(t0:t1));
-        curMinT = curMinT + t0 - 1;
-        if(k==1)
-            F0(1:curMinT) = curMinV;
-        else
-            F0(preMinT:curMinT) = preMinV + (curMinV-preMinV)/(curMinT-preMinT)*[0:curMinT-preMinT]; 
-        end      
-        if(k==nSegment)
-            F0(curMinT:end) = curMinV;
-        end
-        preMinT = curMinT;
-        preMinV = curMinV;
-    end
-
-    sigma1 = max(1e-4,sqrt(mean((x0(2:end)-x0(1:end-1)).^2)/2));
-    F0 = F0 - pre.obtainBias(window,cut)*sigma1;
-    dff = (x0-F0)./(F0+1e-4);
 end
 
 % Helper function
