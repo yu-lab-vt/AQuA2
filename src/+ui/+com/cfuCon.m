@@ -39,9 +39,9 @@ uilabel(bDeOut,'Text','CFU detections','BackgroundColor',[0 0.3 0.6],'FontColor'
 deOutTab = uigridlayout(bDeOut,'Tag','deOutTab','RowSpacing',5, ...
     'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20}, ...
     'Padding',[10,0,10,10]);
-uieditfield(deOutTab,'numeric','Value',0.5,'Tag','alpha');
+uieditfield(deOutTab,'Value','0.5','Tag','alpha');
 uilabel(deOutTab,'Text','Overlap threshold (CH1)');
-uieditfield(deOutTab,'numeric','Value',3,'Tag','minNumEvt');
+uieditfield(deOutTab,'Value','3','Tag','minNumEvt');
 uilabel(deOutTab,'Text','Minimum number of event in CFU (CH1)');
 uieditfield(deOutTab,'numeric','Value',0.5,'Limits',[0,1], ...
     'Tag','postMergeCorrelation');
@@ -51,9 +51,9 @@ if ~opts.singleChannel
     deOutTab2 = uigridlayout(bDeOut,'Tag','deOutTab2','RowSpacing',5, ...
         'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20}, ...
         'Padding',[10,0,10,10]);
-    uieditfield(deOutTab2,'numeric','Value',0.5,'Tag','alpha2');
+    uieditfield(deOutTab2,'Value','0.5','Tag','alpha2');
     uilabel(deOutTab2,'Text','Overlap threshold (CH2)');
-    uieditfield(deOutTab2,'numeric','Value',3,'Tag','minNumEvt2');
+    uieditfield(deOutTab2,'Value','3','Tag','minNumEvt2');
     uilabel(deOutTab2,'Text','Minimum number of event in CFU (CH2)');
     uieditfield(deOutTab2,'numeric','Value',0.5,'Limits',[0,1], ...
         'Tag','postMergeCorrelation2');
