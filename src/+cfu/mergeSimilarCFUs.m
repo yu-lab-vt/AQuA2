@@ -28,6 +28,8 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge, changedIndices
     similarityMatrix = -inf(nCFU, nCFU);
     regionMasks = cellfun(@(region) region > 0.1, cfuRegions, ...
         'UniformOutput', false);
+    contactAreas = spatialContactAreas(regionMasks, ...
+        parameters.SpatialDilationRadius);
 
     for firstIndex = 1:(nCFU - 1)
         for secondIndex = (firstIndex + 1):nCFU
@@ -40,10 +42,7 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge, changedIndices
                 diagnostics.SiblingExcludedPairs = diagnostics.SiblingExcludedPairs + 1;
                 continue;
             end
-            dilationKernel = dilationKernelFor(regionMasks{firstIndex}, ...
-                parameters.SpatialDilationRadius);
-            contactArea = nnz(imdilate(regionMasks{firstIndex}, dilationKernel) & ...
-                regionMasks{secondIndex});
+            contactArea = contactAreas(firstIndex, secondIndex);
             if contactArea < parameters.MinimumOverlapPixels
                 diagnostics.SpatialRejectedPairs = diagnostics.SpatialRejectedPairs + 1;
                 continue;
@@ -80,6 +79,34 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge, changedIndices
 
     [cfuRegions, cfuLists, parentIds, memberships, changedIndices] = mergeGroups( ...
         groups, cfuRegions, cfuLists, parentIds, memberships);
+end
+
+function contactAreas = spatialContactAreas(regionMasks, radius)
+%SPATIALCONTACTAREAS Count directed dilated-mask contacts in one sparse product.
+%   This is equivalent to nnz(imdilate(maskA) & maskB) for every CFU pair,
+%   but dilates each mask once instead of once per pair.
+
+    nCFU = numel(regionMasks);
+    nPixels = numel(regionMasks{1});
+    originalPixels = cell(nCFU, 1);
+    dilatedPixels = cell(nCFU, 1);
+    for cfuIndex = 1:nCFU
+        currentMask = regionMasks{cfuIndex};
+        originalPixels{cfuIndex} = find(currentMask);
+        kernel = dilationKernelFor(currentMask, radius);
+        dilatedPixels{cfuIndex} = find(imdilate(currentMask, kernel));
+    end
+    originalMatrix = sparsePixelMembership(originalPixels, nPixels);
+    dilatedMatrix = sparsePixelMembership(dilatedPixels, nPixels);
+    contactAreas = dilatedMatrix' * originalMatrix;
+end
+
+function pixelMembership = sparsePixelMembership(pixelLists, nPixels)
+    nCFU = numel(pixelLists);
+    counts = cellfun(@numel, pixelLists);
+    pixelIndices = vertcat(pixelLists{:});
+    cfuIndices = repelem((1:nCFU)', counts);
+    pixelMembership = sparse(pixelIndices, cfuIndices, 1, nPixels, nCFU);
 end
 
 function diagnostics = emptyDiagnostics()
