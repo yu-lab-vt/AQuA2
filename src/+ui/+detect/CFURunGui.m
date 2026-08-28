@@ -67,13 +67,12 @@ function CFURunGui(~,~,fCFU,f)
     [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
         cfuRegions1, datVec, opts.movAvgWin, opts.cut);
     mergeParameters = cfu.defaultCFUMergeParameters();
-    [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, didMerge1] = ...
-        cfu.mergeSimilarCFUs(cfuRegions1, CFU_lst1, cfuParentIds1, ...
-        cfuMemberships1, cfuDFFCurves1, mergeParameters);
-    if didMerge1
-        [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
-            cfuRegions1, datVec, opts.movAvgWin, opts.cut);
-    end
+    mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
+        updateMergeWaitbar(ff, 1, stage, roundIndex, maxRounds, count);
+    [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
+        cfuDFFCurves1, ~, ~, mergeDiagnostics1] = cfu.iterativeMergeSimilarCFUs(cfuRegions1, ...
+        CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
+        cfuDFFCurves1, datVec, opts.movAvgWin, opts.cut, mergeParameters);
     waitbar(0.6,ff);
     
     % rising time judgement
@@ -214,6 +213,7 @@ function CFURunGui(~,~,fCFU,f)
         cfuInfo{i,14} = cfuMemberships1{i}; % shared-event local masks and scores
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
+    setappdata(fCFU,'cfuMergeDiagnostics1',mergeDiagnostics1);
     
     % cfuMap
     cfuMap1 = zeros(H,W,L,'uint16');
@@ -252,13 +252,12 @@ function CFURunGui(~,~,fCFU,f)
         [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
             cfuRegions2, datVec, opts.movAvgWin, opts.cut);
         mergeParameters = cfu.defaultCFUMergeParameters();
-        [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, didMerge2] = ...
-            cfu.mergeSimilarCFUs(cfuRegions2, CFU_lst2, cfuParentIds2, ...
-            cfuMemberships2, cfuDFFCurves2, mergeParameters);
-        if didMerge2
-            [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
-                cfuRegions2, datVec, opts.movAvgWin, opts.cut);
-        end
+        mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
+            updateMergeWaitbar(ff, 2, stage, roundIndex, maxRounds, count);
+        [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
+            cfuDFFCurves2, ~, ~, mergeDiagnostics2] = cfu.iterativeMergeSimilarCFUs(cfuRegions2, ...
+            CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
+            cfuDFFCurves2, datVec, opts.movAvgWin, opts.cut, mergeParameters);
         waitbar(0.6,ff);
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
@@ -302,6 +301,7 @@ function CFURunGui(~,~,fCFU,f)
             cfuInfo{i,14} = cfuMemberships2{i}; % shared-event local masks and scores
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
+        setappdata(fCFU,'cfuMergeDiagnostics2',mergeDiagnostics2);
         
         cfuMap2 = zeros(H,W,L,'uint16');
         for i = 1:nCFU
@@ -358,6 +358,25 @@ function CFURunGui(~,~,fCFU,f)
     ui.updtCFUint([],[],fCFU,true);
     
     delete(ff);
+end
+
+function updateMergeWaitbar(waitbarHandle, channelIndex, stage, roundIndex, maxRounds, count)
+    if ~isgraphics(waitbarHandle)
+        return;
+    end
+    progressBase = 0.32;
+    progressSpan = 0.24;
+    if strcmp(stage, 'evaluate')
+        progress = progressBase + progressSpan * (roundIndex - 1) / maxRounds;
+        message = sprintf('CFU channel %d: merge round %d/%d, evaluating candidates', ...
+            channelIndex, roundIndex, maxRounds);
+    else
+        progress = progressBase + progressSpan * (roundIndex - 0.5) / maxRounds;
+        message = sprintf('CFU channel %d: merge round %d/%d, updating %d CFUs', ...
+            channelIndex, roundIndex, maxRounds, count);
+    end
+    waitbar(min(progress, 0.58), waitbarHandle, message);
+    drawnow limitrate;
 end
 
 % Helper function

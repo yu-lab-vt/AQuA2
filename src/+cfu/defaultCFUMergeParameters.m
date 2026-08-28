@@ -6,7 +6,8 @@ function parameters = defaultCFUMergeParameters()
     parameters.ExcludeSiblingBasins = true;
     parameters.SpatialDilationRadius = 1;
     parameters.MinimumOverlapPixels = 1;
-    parameters.MinimumCrossCorrelation = 0.95;
-    parameters.MaximumCrossCorrelationLagFrames = 2;
+    parameters.MinimumCurveCorrelation = 0.90;
     parameters.MinimumPositiveAUCRatio = 0.5;
+    parameters.MaximumMergeRounds = 5;
+    parameters.ProgressCallback = [];
 end

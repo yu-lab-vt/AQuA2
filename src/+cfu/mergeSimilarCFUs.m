@@ -1,20 +1,28 @@
-function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
-    mergeSimilarCFUs(cfuRegions, cfuLists, parentIds, memberships, dffCurves, parameters)
+function [cfuRegions, cfuLists, parentIds, memberships, didMerge, changedIndices, outputGroups, diagnostics] = ...
+    mergeSimilarCFUs(cfuRegions, cfuLists, parentIds, memberships, dffCurves, parameters, candidateIndices)
 %MERGESIMILARCFUS Conservatively merge likely duplicate final CFUs.
 %   Candidate pairs must contact after a small spatial dilation, have highly
-%   similar normalized cross-correlation, comparable positive DFF AUC, and
-%   a small cross-correlation lag. Sibling basins from one hierarchy parent
-%   are excluded by default. Valid pairs are merged with complete linkage,
-%   preventing chain-style over-merging.
+%   similar zero-lag Pearson correlation and comparable positive DFF AUC.
+%   Sibling basins from one hierarchy parent are excluded by default. Valid
+%   pairs are merged with complete linkage, preventing chain-style
+%   over-merging.
 
     if nargin < 6 || isempty(parameters)
         parameters = cfu.defaultCFUMergeParameters();
     end
+    if nargin < 7 || isempty(candidateIndices)
+        candidateIndices = 1:numel(cfuRegions);
+    end
     didMerge = false;
+    changedIndices = [];
     nCFU = numel(cfuRegions);
+    outputGroups = num2cell(1:nCFU);
+    diagnostics = emptyDiagnostics();
     if ~parameters.Enable || nCFU < 2
         return;
     end
+    candidateMask = false(nCFU, 1);
+    candidateMask(candidateIndices) = true;
 
     edgeMatrix = false(nCFU, nCFU);
     similarityMatrix = -inf(nCFU, nCFU);
@@ -23,8 +31,13 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
 
     for firstIndex = 1:(nCFU - 1)
         for secondIndex = (firstIndex + 1):nCFU
+            if ~candidateMask(firstIndex) && ~candidateMask(secondIndex)
+                continue;
+            end
+            diagnostics.EvaluatedPairs = diagnostics.EvaluatedPairs + 1;
             if parameters.ExcludeSiblingBasins && ...
                     parentIds(firstIndex) == parentIds(secondIndex)
+                diagnostics.SiblingExcludedPairs = diagnostics.SiblingExcludedPairs + 1;
                 continue;
             end
             dilationKernel = dilationKernelFor(regionMasks{firstIndex}, ...
@@ -32,49 +45,62 @@ function [cfuRegions, cfuLists, parentIds, memberships, didMerge] = ...
             contactArea = nnz(imdilate(regionMasks{firstIndex}, dilationKernel) & ...
                 regionMasks{secondIndex});
             if contactArea < parameters.MinimumOverlapPixels
+                diagnostics.SpatialRejectedPairs = diagnostics.SpatialRejectedPairs + 1;
                 continue;
             end
+            diagnostics.SpatialCandidatePairs = diagnostics.SpatialCandidatePairs + 1;
 
-            [crossCorrelation, crossCorrelationLag, aucRatio] = curveFeatures( ...
+            [curveCorrelation, aucRatio] = curveFeatures( ...
                 dffCurves(firstIndex,:), dffCurves(secondIndex,:));
-            if crossCorrelation < parameters.MinimumCrossCorrelation || ...
-                    crossCorrelationLag > parameters.MaximumCrossCorrelationLagFrames || ...
-                    aucRatio < parameters.MinimumPositiveAUCRatio
+            passesCorrelation = curveCorrelation >= parameters.MinimumCurveCorrelation;
+            passesAUC = aucRatio >= parameters.MinimumPositiveAUCRatio;
+            if ~passesCorrelation
+                diagnostics.CorrelationRejectedPairs = diagnostics.CorrelationRejectedPairs + 1;
+            end
+            if ~passesAUC
+                diagnostics.AUCRejectedPairs = diagnostics.AUCRejectedPairs + 1;
+            end
+            if ~passesCorrelation || ~passesAUC
                 continue;
             end
+            diagnostics.AcceptedEdges = diagnostics.AcceptedEdges + 1;
             edgeMatrix(firstIndex, secondIndex) = true;
             edgeMatrix(secondIndex, firstIndex) = true;
-            similarityMatrix(firstIndex, secondIndex) = crossCorrelation;
-            similarityMatrix(secondIndex, firstIndex) = crossCorrelation;
+            similarityMatrix(firstIndex, secondIndex) = curveCorrelation;
+            similarityMatrix(secondIndex, firstIndex) = curveCorrelation;
         end
     end
 
     groups = completeLinkageGroups(edgeMatrix, similarityMatrix);
+    outputGroups = groups;
     didMerge = any(cellfun(@numel, groups) > 1);
     if ~didMerge
         return;
     end
 
-    [cfuRegions, cfuLists, parentIds, memberships] = mergeGroups( ...
+    [cfuRegions, cfuLists, parentIds, memberships, changedIndices] = mergeGroups( ...
         groups, cfuRegions, cfuLists, parentIds, memberships);
 end
 
-function [crossCorrelation, crossCorrelationLag, aucRatio] = curveFeatures(firstCurve, secondCurve)
+function diagnostics = emptyDiagnostics()
+    diagnostics = struct('EvaluatedPairs', 0, 'SiblingExcludedPairs', 0, ...
+        'SpatialRejectedPairs', 0, 'SpatialCandidatePairs', 0, ...
+        'CorrelationRejectedPairs', 0, 'AUCRejectedPairs', 0, ...
+        'AcceptedEdges', 0);
+end
+
+function [curveCorrelation, aucRatio] = curveFeatures(firstCurve, secondCurve)
     firstCurve = double(firstCurve(:));
     secondCurve = double(secondCurve(:));
     if numel(firstCurve) ~= numel(secondCurve) || ...
             any(~isfinite(firstCurve)) || any(~isfinite(secondCurve)) || ...
             std(firstCurve) == 0 || std(secondCurve) == 0
-        crossCorrelation = -inf;
-        crossCorrelationLag = inf;
+        curveCorrelation = -inf;
         aucRatio = 0;
         return;
     end
-    firstCentered = firstCurve - mean(firstCurve);
-    secondCentered = secondCurve - mean(secondCurve);
-    [crossCorrelationValues, lags] = xcorr(firstCentered, secondCentered, 'coeff');
-    [crossCorrelation, bestIndex] = max(crossCorrelationValues);
-    crossCorrelationLag = abs(lags(bestIndex));
+    correlationMatrix = corrcoef(firstCurve, secondCurve);
+    curveCorrelation = correlationMatrix(1,2);
     firstAUC = trapz(max(firstCurve, 0));
     secondAUC = trapz(max(secondCurve, 0));
     aucRatio = min(firstAUC, secondAUC) / max([firstAUC, secondAUC, eps]);
@@ -123,7 +149,7 @@ function groups = completeLinkageGroups(edgeMatrix, similarityMatrix)
     end
 end
 
-function [regionsOut, listsOut, parentsOut, membershipsOut] = mergeGroups( ...
+function [regionsOut, listsOut, parentsOut, membershipsOut, changedIndices] = mergeGroups( ...
     groups, regionsIn, listsIn, parentsIn, membershipsIn)
 
     nGroups = numel(groups);
@@ -131,6 +157,7 @@ function [regionsOut, listsOut, parentsOut, membershipsOut] = mergeGroups( ...
     listsOut = cell(nGroups, 1);
     parentsOut = zeros(nGroups, 1, 'like', parentsIn);
     membershipsOut = cell(nGroups, 1);
+    changedIndices = find(cellfun(@numel, groups) > 1);
     for groupIndex = 1:nGroups
         memberIndices = groups{groupIndex};
         region = zeros(size(regionsIn{memberIndices(1)}), 'like', regionsIn{memberIndices(1)});
@@ -166,9 +193,15 @@ function membership = mergeMemberships(groupMemberships, region, sourceCFUs, sou
         end
         spatialCells = [eventSpatialPixels{:}];
         voxelCells = [eventVoxelIndices{:}];
-        spatialPixels{eventIndex} = unique([spatialCells{:}]);
-        voxelIndices{eventIndex} = unique([voxelCells{:}]);
-        scores(eventIndex) = max([eventScores{:}]);
+        spatialValues = cellfun(@(value) value(:), spatialCells, ...
+            'UniformOutput', false);
+        voxelValues = cellfun(@(value) value(:), voxelCells, ...
+            'UniformOutput', false);
+        scoreValues = cellfun(@(value) value(:), eventScores, ...
+            'UniformOutput', false);
+        spatialPixels{eventIndex} = unique(vertcat(spatialValues{:}));
+        voxelIndices{eventIndex} = unique(vertcat(voxelValues{:}));
+        scores(eventIndex) = max(vertcat(scoreValues{:}));
     end
 
     membership = struct('EventID', eventIds, 'SpatialPixels', {spatialPixels}, ...

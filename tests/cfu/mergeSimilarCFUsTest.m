@@ -66,7 +66,7 @@ classdef mergeSimilarCFUsTest < matlab.unittest.TestCase
             testCase.verifyEqual(parents, 10);
         end
 
-        function testCrossCorrelationSupportsMultiPeakCurves(testCase)
+        function testPearsonCorrelationSupportsMultiPeakCurves(testCase)
             [regions, lists, parents, memberships, ~] = ...
                 mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
             curves = [0 1.00 0.99 0 1.01 0.99 0; ...
@@ -89,6 +89,42 @@ classdef mergeSimilarCFUsTest < matlab.unittest.TestCase
 
             testCase.verifyFalse(didMerge);
             testCase.verifyNumElements(regions, 2);
+        end
+
+        function testSharedEventMasksWithMixedOrientationsMerge(testCase)
+            [regions, lists, parents, memberships, curves] = ...
+                mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
+            lists = {1; 1};
+            memberships{1}.SpatialPixels = {[1; 2]};
+            memberships{1}.VoxelIndices = {[11; 12]};
+            memberships{2}.EventID = 1;
+            memberships{2}.SpatialPixels = {[2 3]};
+            memberships{2}.VoxelIndices = {[12 13]};
+
+            [~, lists, ~, memberships, didMerge] = cfu.mergeSimilarCFUs( ...
+                regions, lists, parents, memberships, curves, []);
+
+            testCase.verifyTrue(didMerge);
+            testCase.verifyEqual(lists, {1});
+            testCase.verifyEqual(memberships{1}.EventID, 1);
+            testCase.verifyEqual(memberships{1}.SpatialPixels{1}, [1; 2; 3]);
+            testCase.verifyEqual(memberships{1}.VoxelIndices{1}, [11; 12; 13]);
+        end
+
+        function testDiagnosticsCountCorrelationRejections(testCase)
+            [regions, lists, parents, memberships, ~] = ...
+                mergeSimilarCFUsTest.twoCFUFixture([10; 20]);
+            curves = [0 1 3 1 0 0; 3 0 1 0 3 0];
+            parameters = cfu.defaultCFUMergeParameters();
+
+            [regions, ~, ~, ~, didMerge, ~, ~, diagnostics] = ...
+                cfu.mergeSimilarCFUs(regions, lists, parents, memberships, curves, parameters);
+
+            testCase.verifyFalse(didMerge);
+            testCase.verifyNumElements(regions, 2);
+            testCase.verifyEqual(diagnostics.SpatialCandidatePairs, 1);
+            testCase.verifyEqual(diagnostics.CorrelationRejectedPairs, 1);
+            testCase.verifyEqual(diagnostics.AcceptedEdges, 0);
         end
     end
 
