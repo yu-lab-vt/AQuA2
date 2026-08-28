@@ -67,6 +67,8 @@ function CFURunGui(~,~,fCFU,f)
     [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
         cfuRegions1, datVec, opts.movAvgWin, opts.cut);
     mergeParameters = cfu.defaultCFUMergeParameters();
+    mergeParameters.MinimumCurveCorrelation = 0.85 + 0.15 * ...
+        min(max(fh.postMergeCorrelation.Value, 0), 1);
     mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
         updateMergeWaitbar(ff, 1, stage, roundIndex, maxRounds, count);
     [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
@@ -99,7 +101,7 @@ function CFURunGui(~,~,fCFU,f)
             [ih_ev, iw_ev, il_ev, it_ev] = ind2sub([H,W,L,T],evtLst1{label});
             t0 = min(it_ev);
             t1 = max(it_ev);
-            % 提取仅仅落入当前 CFU 空间范围内的活跃时间帧
+            % Extract active frames located within the current CFU spatial support.
             spa_ev = sub2ind([H,W,L], ih_ev, iw_ev, il_ev);
             ownTimeFrames{j} = unique(it_ev(ismember(spa_ev, pix)));
             
@@ -120,13 +122,13 @@ function CFURunGui(~,~,fCFU,f)
         cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate); 
         
         % Calculate uncertain events
-        % --- 第10列：使用“精确逐帧 IoU”筛选灰色事件（包含自身筛查与内部去重） ---
-        iouThr = 0.5; % 逐帧重叠率 > 50% 即判定为同一生理活动的碎片
+        % Column 10: filter gray events using exact frame-wise IoU.
+        iouThr = 0.5; % Frame-wise IoU above 50% denotes one fragmented activity.
         iouThr2 = 0.1;
         overlappingCFUs = overlappingCFUs1{i};
         
         initialGrayEvts = [];
-        grayTimeFramesCell = {}; % 缓存灰色事件的精确活跃帧，用于后续内部两两比较
+        grayTimeFramesCell = {}; % Cache exact gray-event frames for pairwise checks.
         
         for oCfuIdx = overlappingCFUs(:)'
             evtsInOther = setdiff(cfuMemberships1{oCfuIdx}.EventID, ...
@@ -134,26 +136,26 @@ function CFURunGui(~,~,fCFU,f)
             for eIdx = 1:numel(evtsInOther)
                 evID = evtsInOther(eIdx);
                 
-                % 1. 快速空间交集初筛
+                % 1. Fast spatial-intersection prefilter.
                 if ~isempty(intersect(cfu_pre1.evtIhw{evID}, pix))
                     
-                    % 2. 提取该灰色事件在当前区域内的确切活跃时间帧
+                    % 2. Extract this gray event's active frames inside the current CFU.
                     [ih_gray, iw_gray, il_gray, it_gray] = ind2sub([H,W,L,T],evtLst1{evID});
                     spa_gray = sub2ind([H,W,L], ih_gray, iw_gray, il_gray);
                     grayTimeFrames = unique(it_gray(ismember(spa_gray, pix)));
                     
-                    % 防止异常空帧
+                    % Guard against an empty frame list.
                     if isempty(grayTimeFrames)
                         continue;
                     end
 
-                    % 如果该灰色事件在当前区域的活跃时刻，有 >50% 落在了 CFU 的整体时间窗内
+                    % Reject when more than half of these frames fall in the CFU time window.
                     overlapGlobalCnt = sum(cfuTimeWindow1(i, grayTimeFrames));
                     if (overlapGlobalCnt / numel(grayTimeFrames)) > 0.5
-                        continue; % 判定为被 CFU 整体活动掩盖的无效事件，直接排除
+                        continue; % The CFU-wide activity already explains this event.
                     end
                     
-                    % 3. 检查与当前 CFU 自身事件的重复率
+                    % 3. Check duplication against events owned by the current CFU.
                     isDuplicate = false;
                     for k = 1:numel(ownTimeFrames)
                         own_t = ownTimeFrames{k};
@@ -161,7 +163,7 @@ function CFURunGui(~,~,fCFU,f)
                             continue;
                         end
                         
-                        % 基于精确帧计算 IoU
+                        % Compute IoU from exact frame sets.
                         inter_len = numel(intersect(own_t, grayTimeFrames));
                         union_len = numel(union(own_t, grayTimeFrames));
                         iou = inter_len / union_len;
@@ -180,13 +182,13 @@ function CFURunGui(~,~,fCFU,f)
             end
         end
         
-        % 4. 灰色事件内部的两两 IoU 筛查去重
+        % 4. Deduplicate gray events by their pairwise frame-wise IoU.
         nGray = numel(initialGrayEvts);
-        keepIdx = true(nGray, 1); % 标记位，标记为 true 的最终保留
+        keepIdx = true(nGray, 1); % A true entry is retained in the final list.
         
         for m = 1:nGray
             if ~keepIdx(m)
-                continue; % 已经被判定为重复而舍弃的，不再作为基准
+                continue; % Already rejected as a duplicate; do not use it as a reference.
             end
             frames_m = grayTimeFramesCell{m};
             
@@ -201,7 +203,7 @@ function CFURunGui(~,~,fCFU,f)
                 iou = inter_len / union_len;
                 
                 if iou > iouThr2
-                    % 发现高度重合，判定为代表了同一个峰，保留 m，剔除 n
+                    % Highly overlapping entries represent one peak: retain m and drop n.
                     keepIdx(n) = false;
                 end
             end
@@ -252,6 +254,8 @@ function CFURunGui(~,~,fCFU,f)
         [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
             cfuRegions2, datVec, opts.movAvgWin, opts.cut);
         mergeParameters = cfu.defaultCFUMergeParameters();
+        mergeParameters.MinimumCurveCorrelation = 0.85 + 0.15 * ...
+            min(max(fh.postMergeCorrelation2.Value, 0), 1);
         mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
             updateMergeWaitbar(ff, 2, stage, roundIndex, maxRounds, count);
         [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...

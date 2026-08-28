@@ -4,7 +4,7 @@ function [x0, x1, y0, y1] = maximalRectangle(A)
     maxArea = 0; 
     optimal = [-1,-1,-1,-1];
     for i = 1:n
-        % 更新高度数组
+        % Update the histogram heights.
         for j = 1:m
             if A(i, j) == 1
                 heights(j) = heights(j) + 1;  

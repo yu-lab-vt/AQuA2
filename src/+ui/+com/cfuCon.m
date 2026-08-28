@@ -16,7 +16,16 @@ pDat = uipanel(bMain);
 pTool = uipanel(bMain,'BorderType','none');
 
 %% %% left panel
-bWkfl = uigridlayout(pWkfl,'ColumnWidth',{'1x'},'RowHeight',{200,210,110,80,145},'Padding',[0,0,0,0],'RowSpacing',10);
+if opts.singleChannel
+    detectPanelHeight = 165;
+    detectRowHeights = {20,80,20,25};
+else
+    detectPanelHeight = 250;
+    detectRowHeights = {20,80,80,20,25};
+end
+bWkfl = uigridlayout(pWkfl,'ColumnWidth',{'1x'}, ...
+    'RowHeight',{detectPanelHeight,210,110,80,145}, ...
+    'Padding',[0,0,0,0],'RowSpacing',10);
 pDetect = uipanel('Parent',bWkfl,'Tag','pDetect');
 pOperation = uipanel('Parent',bWkfl,'Tag','pOperation');
 pGroup = uipanel('Parent',bWkfl,'Tag','pGroup');
@@ -24,25 +33,34 @@ pSys = uipanel('Parent',bWkfl,'Tag','pSys');
 pSelect = uipanel('Parent',bWkfl,'Tag','pSelect');
 
 %% detection
-bDeOut = uigridlayout(pDetect,'ColumnWidth',{'1x'},'RowHeight',{20,55,55,20,25,25},'Padding',[0,15,0,0],'RowSpacing',5);
+bDeOut = uigridlayout(pDetect,'ColumnWidth',{'1x'}, ...
+    'RowHeight',detectRowHeights,'Padding',[0,15,0,0],'RowSpacing',5);
 uilabel(bDeOut,'Text','CFU detections','BackgroundColor',[0 0.3 0.6],'FontColor','white');
-deOutTab = uigridlayout(bDeOut,'Tag','deOutTab','RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20},'Padding',[10,0,10,10]);
-uieditfield(deOutTab,'Value','0.5','Tag','alpha');
+deOutTab = uigridlayout(bDeOut,'Tag','deOutTab','RowSpacing',5, ...
+    'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20}, ...
+    'Padding',[10,0,10,10]);
+uieditfield(deOutTab,'numeric','Value',0.5,'Tag','alpha');
 uilabel(deOutTab,'Text','Overlap threshold (CH1)');
-uieditfield(deOutTab,'Value','3','Tag','minNumEvt');
+uieditfield(deOutTab,'numeric','Value',3,'Tag','minNumEvt');
 uilabel(deOutTab,'Text','Minimum number of event in CFU (CH1)');
+uieditfield(deOutTab,'numeric','Value',0.5,'Limits',[0,1], ...
+    'Tag','postMergeCorrelation');
+uilabel(deOutTab,'Text','Post-merge correlation (CH1)');
 
-deOutTab2 = uigridlayout(bDeOut,'Tag','deOutTab2','RowSpacing',5,'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20},'Padding',[10,0,10,10]);
-uieditfield(deOutTab2,'Value','0.5','Tag','alpha2');
-uilabel(deOutTab2,'Text','Overlap threshold (CH2)');
-uieditfield(deOutTab2,'Value','3','Tag','minNumEvt2');
-uilabel(deOutTab2,'Text','Minimum number of event in CFU (CH2)');
-
-if opts.singleChannel
-    deOutTab2.Visible = 'off';
+if ~opts.singleChannel
+    deOutTab2 = uigridlayout(bDeOut,'Tag','deOutTab2','RowSpacing',5, ...
+        'ColumnSpacing',5,'ColumnWidth',{50,'1x'},'RowHeight',{20,20,20}, ...
+        'Padding',[10,0,10,10]);
+    uieditfield(deOutTab2,'numeric','Value',0.5,'Tag','alpha2');
+    uilabel(deOutTab2,'Text','Overlap threshold (CH2)');
+    uieditfield(deOutTab2,'numeric','Value',3,'Tag','minNumEvt2');
+    uilabel(deOutTab2,'Text','Minimum number of event in CFU (CH2)');
+    uieditfield(deOutTab2,'numeric','Value',0.5,'Limits',[0,1], ...
+        'Tag','postMergeCorrelation2');
+    uilabel(deOutTab2,'Text','Post-merge correlation (CH2)');
 end
 
-p = uicheckbox(bDeOut,'Text','Use spatial weighted map (yes)| spatial footprint (no)','Value',1,'Tag','spatialOption');
+uicheckbox(bDeOut,'Text','Use spatial weighted map (yes)| spatial footprint (no)','Value',1,'Tag','spatialOption');
 
 deOutActions = uigridlayout(bDeOut,'RowSpacing',0,'ColumnSpacing',5,'ColumnWidth',{'fit','fit','fit'},'RowHeight',{22},'Padding',[70,0,80,0]);
 

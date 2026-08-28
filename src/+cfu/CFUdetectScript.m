@@ -17,6 +17,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
     [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
         cfuRegions1, datVec, opts.movAvgWin, opts.cut);
     mergeParameters = cfu.defaultCFUMergeParameters();
+    mergeParameters = applyConfiguredMergeCorrelation(mergeParameters, cfuOpts, 1);
     [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
         cfuDFFCurves1] = cfu.iterativeMergeSimilarCFUs(cfuRegions1, ...
         CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
@@ -75,6 +76,7 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
             cfuRegions2, datVec, opts.movAvgWin, opts.cut);
         mergeParameters = cfu.defaultCFUMergeParameters();
+        mergeParameters = applyConfiguredMergeCorrelation(mergeParameters, cfuOpts, 2);
         [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
             cfuDFFCurves2] = cfu.iterativeMergeSimilarCFUs(cfuRegions2, ...
             CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
@@ -123,6 +125,17 @@ function [cfuInfo1, cfuInfo2] = CFUdetectScript(res,cfuOpts)
         cfuInfo2 = cfuInfo;
     else
         cfuInfo2 = [];
+    end
+end
+
+function mergeParameters = applyConfiguredMergeCorrelation(mergeParameters, cfuOpts, channelIndex)
+    fieldName = 'minimumCurveCorrelation';
+    if channelIndex == 2
+        fieldName = 'minimumCurveCorrelation2';
+    end
+    if isfield(cfuOpts, 'cfuDetect') && isfield(cfuOpts.cfuDetect, fieldName)
+        mergeParameters.MinimumCurveCorrelation = min(max( ...
+            cfuOpts.cfuDetect.(fieldName), 0.85), 1.0);
     end
 end
 
