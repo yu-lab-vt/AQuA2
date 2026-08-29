@@ -44,7 +44,7 @@ uilabel(deOutTab,'Text','Overlap threshold (CH1)');
 uieditfield(deOutTab,'Value','3','Tag','minNumEvt');
 uilabel(deOutTab,'Text','Minimum number of event in CFU (CH1)');
 uieditfield(deOutTab,'numeric','Value',0.5,'Limits',[0,1], ...
-    'Tag','postMergeCorrelation');
+    'HorizontalAlignment','left','Tag','postMergeCorrelation');
 uilabel(deOutTab,'Text','Post-merge correlation (CH1)');
 
 if ~opts.singleChannel
@@ -56,7 +56,7 @@ if ~opts.singleChannel
     uieditfield(deOutTab2,'Value','3','Tag','minNumEvt2');
     uilabel(deOutTab2,'Text','Minimum number of event in CFU (CH2)');
     uieditfield(deOutTab2,'numeric','Value',0.5,'Limits',[0,1], ...
-        'Tag','postMergeCorrelation2');
+        'HorizontalAlignment','left','Tag','postMergeCorrelation2');
     uilabel(deOutTab2,'Text','Post-merge correlation (CH2)');
 end
 
