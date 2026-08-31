@@ -1,6 +1,19 @@
 function CFURunGui(~,~,fCFU,f)
     
     fh = guidata(fCFU);
+    if isappdata(fCFU, 'manualCFUShapes')
+        manualCFUShapes = getappdata(fCFU, 'manualCFUShapes');
+        if isstruct(manualCFUShapes) && ~isempty(manualCFUShapes)
+            selection = uiconfirm(fCFU, ...
+                'Running automatic CFU detection will remove all manually drawn CFUs. Continue?', ...
+                'Manual CFUs Will Be Cleared', ...
+                'Options', {'Run detection', 'Cancel'}, ...
+                'DefaultOption', 'Cancel', 'CancelOption', 'Cancel', 'Icon', 'warning');
+            if ~strcmp(selection, 'Run detection')
+                return;
+            end
+        end
+    end
     if isfield(fh,'spatialBoundaryButton')
         fh.spatialBoundaryButton.Enable = 'off';
     end
