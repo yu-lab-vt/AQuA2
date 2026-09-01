@@ -4,15 +4,15 @@ function calAllDependency(~,~,fCFU,f)
     cfuInfo1 = getappdata(fCFU,'cfuInfo1');
     cfuInfo2 = getappdata(fCFU,'cfuInfo2');
     
-    cfuInfo = cell(size(cfuInfo1,1)+size(cfuInfo2,1),1);
+    occurrenceSequences = cell(size(cfuInfo1,1)+size(cfuInfo2,1),1);
     for k = 1:size(cfuInfo1,1)
-        cfuInfo{k,1} = cfuInfo1{k,4};
+        occurrenceSequences{k,1} = cfuInfo1(k).occurrence;
     end
     for k = 1:size(cfuInfo2,1)
-        cfuInfo{k+size(cfuInfo1,1),1} = cfuInfo2{k,4};
+        occurrenceSequences{k+size(cfuInfo1,1),1} = cfuInfo2(k).occurrence;
     end
     tic;
-    nCFU = size(cfuInfo,1);
+    nCFU = size(occurrenceSequences,1);
     maxDist = round(fh.sldWinSz.Value);        % unfixed time window, pick the most significant one
     shift = abs(round(str2num(fh.shift.Value)));
     relation = cell(nCFU*nCFU,1);
@@ -24,8 +24,8 @@ function calAllDependency(~,~,fCFU,f)
         if(j<=i)
             relation{k} = [];
         else
-            seq1 = cfuInfo{i,1};
-            seq2 = cfuInfo{j,1};
+            seq1 = occurrenceSequences{i,1};
+            seq2 = occurrenceSequences{j,1};
             [pvalue1,ds1,distribution1] = cfu.calDependency(seq1, seq2, shift, 0:maxDist); % condition is the first variable, occurrence is the second.
             [pvalue2,ds2,distribution2] = cfu.calDependency(seq2, seq1, shift, 0:maxDist); % condition is the first variable, occurrence is the second.
             delay = nan;

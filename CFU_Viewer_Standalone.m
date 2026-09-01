@@ -20,6 +20,10 @@ function CFU_Viewer_Standalone()
             'result file (missing cfuInfo1 or datPro).'], 'Invalid File');
         return;
     end
+    loadedData.cfuInfo1 = cfu.normalizeCFUInfo(loadedData.cfuInfo1);
+    if isfield(loadedData, 'cfuInfo2')
+        loadedData.cfuInfo2 = cfu.normalizeCFUInfo(loadedData.cfuInfo2);
+    end
 
     opts = buildViewerOptions(loadedData, pathname, filename);
     fOut = createViewerContext(loadedData.datPro, opts);
@@ -54,7 +58,7 @@ function opts = buildViewerOptions(loadedData, pathname, filename)
     if isempty(loadedData.cfuInfo1)
         timePoints = 1000;
     else
-        timePoints = size(loadedData.cfuInfo1{1, 5}, 2);
+        timePoints = size(loadedData.cfuInfo1(1).meanCurve, 2);
     end
 
     opts = struct();

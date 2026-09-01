@@ -137,16 +137,16 @@ end
 function [eventIds,fts] = getCfuEvents(id,nCFU1,cfuInfo1,cfuInfo2,fts1,fts2)
     eventIds = [];
     fts = [];
-    if ~iscell(cfuInfo1) || ~iscell(cfuInfo2) || ~isnumeric(id) || ...
+    if ~isstruct(cfuInfo1) || (~isempty(cfuInfo2) && ~isstruct(cfuInfo2)) || ~isnumeric(id) || ...
             ~isscalar(id) || ~isfinite(id) || id ~= fix(id)
         return;
     end
 
     if id > nCFU1 && id <= nCFU1 + size(cfuInfo2,1)
-        eventIds = cfuInfo2{id - nCFU1,2};
+        eventIds = cfuInfo2(id - nCFU1).eventIds;
         fts = fts2;
     elseif id >= 1 && id <= size(cfuInfo1,1)
-        eventIds = cfuInfo1{id,2};
+        eventIds = cfuInfo1(id).eventIds;
         fts = fts1;
     end
 end

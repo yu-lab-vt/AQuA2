@@ -120,6 +120,12 @@ if op>0
     end
     
     opts = res.opts;
+    if isfield(res, 'cfuInfo1')
+        res.cfuInfo1 = cfu.normalizeCFUInfo(res.cfuInfo1);
+    end
+    if isfield(res, 'cfuInfo2')
+        res.cfuInfo2 = cfu.normalizeCFUInfo(res.cfuInfo2);
+    end
     % rescale int8 to [0,1] double
     % dat is for detection, datOrg for viewing
     %res.dat = double(res.dat)/(2^res.opts.bitNum-1);

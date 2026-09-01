@@ -2,7 +2,7 @@ function manualCFU(action, fCFU, fOut, varargin)
 %manualCFU Create, edit, persist, and remove hand-drawn 2-D CFUs.
 %
 % Manual CFUs are represented by an images.roi.Ellipse and stored in the
-% normal CFU information array.  Column 12 is true only for these manual
+% normal CFU information structure.  The isManual field is true only for these manual
 % records.  The footprint is recalculated from the ellipse after every
 % completed move/resize/rotation, so all downstream curve and event data
 % stay in sync with what is displayed.
@@ -154,11 +154,11 @@ function commitManualCFU(roi, fCFU, fOut)
 
     try
         [record, shape] = createManualRecord(roi, fOut, channel, localIndex);
-        info = ensureInfoColumns(getChannelInfo(fCFU, channel), 12);
+        info = ensureCFUInfo(getChannelInfo(fCFU, channel));
         if localIndex < 1 || localIndex > size(info, 1) + 1
             error('cfu:ManualCFUIndex', 'The selected manual CFU no longer has a valid index.');
         end
-        info(localIndex, 1:12) = record;
+        info(localIndex) = record;
         setChannelInfo(fCFU, channel, info);
         upsertShape(fCFU, shape);
         rebuildCFUMaps(fCFU);
@@ -212,16 +212,18 @@ function deleteSelectedManualCFU(fCFU)
     channel = fh.manualCFUSelected(1);
     localIndex = fh.manualCFUSelected(2);
     info = getChannelInfo(fCFU, channel);
-    if ~iscell(info) || localIndex < 1 || localIndex > size(info, 1) || ...
-            size(info, 2) < 12 || ~isequal(info{localIndex, 12}, true)
+    if ~isstruct(info) || localIndex < 1 || localIndex > size(info, 1) || ...
+            ~isfield(info, 'isManual') || ~isequal(info(localIndex).isManual, true)
         return;
     end
 
     nChannel1 = size(getChannelInfo(fCFU, 1), 1);
     removeROIForRecord(fCFU, channel, localIndex);
-    info(localIndex, :) = [];
+    info(localIndex) = [];
     if ~isempty(info)
-        info(:, 1) = num2cell((1:size(info, 1)).');
+        for index = 1:size(info, 1)
+            info(index).id = index;
+        end
     end
     setChannelInfo(fCFU, channel, info);
     renumberManualShapesAndROIs(fCFU, channel, localIndex);
@@ -345,19 +347,17 @@ function [record, shape] = createManualRecord(roi, fOut, channel, localIndex)
         peaks(k) = getEventPeak(features, eventIds(k), eventFrames{k}, rise);
     end
 
-    record = cell(1, 12);
-    record{1} = localIndex;
-    record{2} = eventIds;
-    record{3} = weightMap;
-    record{4} = occurrence;
-    record{5} = curve;
-    record{6} = dff;
-    record{7} = timeWindow;
-    record{8} = false(1, timePoints);
-    record{9} = calculateFrequencyStats(peaks, opts.frameRate);
-    record{10} = [];
-    record{11} = [];
-    record{12} = true;
+    record = cfu.newCFUInfo(1);
+    record.id = localIndex;
+    record.eventIds = eventIds;
+    record.weightMap = weightMap;
+    record.occurrence = occurrence;
+    record.meanCurve = curve;
+    record.meanDff = dff;
+    record.timeWindow = timeWindow;
+    record.nonTimeWindow = false(1, timePoints);
+    record.frequencyStats = calculateFrequencyStats(peaks, opts.frameRate);
+    record.isManual = true;
 
     shape = struct('Version', 1, 'Channel', channel, 'Index', localIndex, ...
         'Center', double(roi.Center), 'SemiAxes', double(roi.SemiAxes), ...
@@ -411,11 +411,11 @@ end
 
 function cfuMap = buildMap(info, dimensions)
     cfuMap = zeros(dimensions, 'uint16');
-    if ~iscell(info) || size(info, 2) < 3
+    if ~isstruct(info) || ~isfield(info, 'weightMap')
         return;
     end
     for k = 1:size(info, 1)
-        footprint = info{k, 3};
+        footprint = info(k).weightMap;
         if isnumeric(footprint) || islogical(footprint)
             if numel(footprint) == prod(dimensions)
                 cfuMap(reshape(footprint, dimensions) > 0.1) = uint16(k);
@@ -614,8 +614,8 @@ function addAllManualFavourites(fCFU)
             info = info2;
             offset = size(info1, 1);
         end
-        if iscell(info) && size(info, 2) >= 12
-            manualRows = find(cellfun(@(value) isequal(value, true), info(:, 12)));
+        if isstruct(info) && isfield(info, 'isManual')
+            manualRows = find(arrayfun(@(record) isequal(record.isManual, true), info));
             fav = [fav(:); offset + manualRows(:)];
         end
     end
@@ -713,20 +713,18 @@ function setChannelInfo(fCFU, channel, info)
     setappdata(fCFU, sprintf('cfuInfo%d', channel), info);
 end
 
-function info = ensureInfoColumns(info, count)
+function info = ensureCFUInfo(info)
     if isempty(info)
-        info = cell(0, count);
-    elseif ~iscell(info)
-        error('cfu:ManualCFUInfo', 'The current CFU information is invalid.');
-    elseif size(info, 2) < count
-        info(:, end + 1:count) = {[]};
+        info = cfu.newCFUInfo(0);
+    else
+        info = cfu.normalizeCFUInfo(info);
     end
 end
 
 function tf = isManualInfoRecord(fCFU, channel, localIndex)
     info = getChannelInfo(fCFU, channel);
-    tf = iscell(info) && localIndex >= 1 && localIndex <= size(info, 1) && ...
-        size(info, 2) >= 12 && isequal(info{localIndex, 12}, true);
+    tf = isstruct(info) && localIndex >= 1 && localIndex <= size(info, 1) && ...
+        isfield(info, 'isManual') && isequal(info(localIndex).isManual, true);
 end
 
 function data = makeROIData(channel, localIndex)

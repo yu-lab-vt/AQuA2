@@ -36,7 +36,7 @@ function updtCFUint(~,~,fCFU,colorRenew)
                         x = randi(255,[1,3]);
                     end
                     cols1(i,:) = x;
-                    curRegion = cfuInfo1{i,3};
+                    curRegion = cfuInfo1(i).weightMap;
                     colorMap1 = colorMap1 + cat(3,curRegion*x(1),curRegion*x(2),curRegion*x(3))/255;
                 end
                 for i = 1:nCFU2
@@ -46,7 +46,7 @@ function updtCFUint(~,~,fCFU,colorRenew)
                         x = randi(255,[1,3]);
                     end
                     cols2(i,:) = x;
-                    curRegion = cfuInfo2{i,3};
+                    curRegion = cfuInfo2(i).weightMap;
                     colorMap2 = colorMap2 + cat(3,curRegion*x(1),curRegion*x(2),curRegion*x(3))/255;
                 end
                 delete(ff);
@@ -90,12 +90,12 @@ function updtCFUint(~,~,fCFU,colorRenew)
                 id = groupCFUs(i);
                 if(id<=nCFU1)
                     x = cols1(id,:);
-                    curRegion = cfuInfo1{id,3};
+                    curRegion = cfuInfo1(id).weightMap;
                     colorMap1 = colorMap1 + cat(3,curRegion*x(1),curRegion*x(2),curRegion*x(3))/255;
                 else
                     id = id - nCFU1;
                     x = cols2(id,:);
-                    curRegion = cfuInfo2{id,3};
+                    curRegion = cfuInfo2(id).weightMap;
                     colorMap2 = colorMap2 + cat(3,curRegion*x(1),curRegion*x(2),curRegion*x(3))/255;
                 end
                 
@@ -111,7 +111,7 @@ function updtCFUint(~,~,fCFU,colorRenew)
             favLst = fh.favCFUs;
             for ii=1:numel(favLst)
                 id = favLst(ii);
-                pix = find(cfuInfo1{id,3}>0.1);
+                pix = find(cfuInfo1(id).weightMap>0.1);
                 xyC = img.getEventBorder({pix},[H,W,1,1]);
                 xyC = xyC{1};
                 x0 = 0;
@@ -135,7 +135,7 @@ function updtCFUint(~,~,fCFU,colorRenew)
 
             selectCFUs = fh.selectCFUs;
             for ii=1:size(selectCFUs,1)
-                pix = find(cfuInfo1{selectCFUs(ii,2),3}>0.1);
+                pix = find(cfuInfo1(selectCFUs(ii,2)).weightMap>0.1);
                 xyC = img.getEventBorder({pix},[H,W,1,1]);
                 xyC = xyC{1};
                 x0 = 0;
@@ -169,10 +169,10 @@ function updtCFUint(~,~,fCFU,colorRenew)
                 if id>nCFU1
                     ax = ax2;
                     id = id - nCFU1;
-                    pix = find(cfuInfo2{id,3}>0.1);
+                    pix = find(cfuInfo2(id).weightMap>0.1);
                 else
                     ax = ax1;
-                    pix = find(cfuInfo1{id,3}>0.1);
+                    pix = find(cfuInfo1(id).weightMap>0.1);
                 end
                 xyC = img.getEventBorder({pix},[H,W,1,1]);
                 xyC = xyC{1};
@@ -197,10 +197,10 @@ function updtCFUint(~,~,fCFU,colorRenew)
             selectCFUs = fh.selectCFUs;
             for ii=1:size(selectCFUs,1)
                 if(selectCFUs(ii,1)==1)
-                    pix = find(cfuInfo1{selectCFUs(ii,2),3}>0.1);
+                    pix = find(cfuInfo1(selectCFUs(ii,2)).weightMap>0.1);
                     ax = ax1;
                 else
-                    pix = find(cfuInfo2{selectCFUs(ii,2),3}>0.1);
+                    pix = find(cfuInfo2(selectCFUs(ii,2)).weightMap>0.1);
                     ax = ax2;
                 end
                 xyC = img.getEventBorder({pix},[H,W,1,1]);
@@ -313,9 +313,9 @@ function updtCFUint(~,~,fCFU,colorRenew)
             for i = 1:numel(groupCFUs)
                 id = groupCFUs(i);
                 if(id<=nCFU1)
-                    overlayLabel1(se.myResize(cfuInfo1{id,3}>0.1,1/sclXY)) = i;
+                    overlayLabel1(se.myResize(cfuInfo1(id).weightMap>0.1,1/sclXY)) = i;
                 else
-                    overlayLabel2(se.myResize(cfuInfo2{id-nCFU1,3}>0.1,1/sclXY)) = i;
+                    overlayLabel2(se.myResize(cfuInfo2(id-nCFU1).weightMap>0.1,1/sclXY)) = i;
                 end
             end
             cols1 = groupCol(1:nCFU1,:);

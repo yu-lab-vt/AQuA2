@@ -98,7 +98,7 @@ function CFURunGui(~,~,fCFU,f)
         cfu.membershipTimeWindows(cfuMemberships1, cfuRegions1, opts.sz);
     waitbar(0.9,ff);
     
-    cfuInfo = cell(nCFU,14);
+    cfuInfo = cfu.newCFUInfo(nCFU);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
@@ -124,15 +124,15 @@ function CFURunGui(~,~,fCFU,f)
             cfuOccurrence1(i,round(riseT)) = true;
         end
         
-        cfuInfo{i,1} = i;
-        cfuInfo{i,2} = CFU_lst1{i};   % Slice
-        cfuInfo{i,3} = cfuRegions1{i};
-        cfuInfo{i,4} = cfuOccurrence1(i,:);
-        cfuInfo{i,5} = cfuCurves1(i,:);
-        cfuInfo{i,6} = cfuDFFCurves1(i,:); 
-        cfuInfo{i,7} = cfuTimeWindow1(i,:); 
-        cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
-        cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate); 
+        cfuInfo(i).id = i;
+        cfuInfo(i).eventIds = CFU_lst1{i};
+        cfuInfo(i).weightMap = cfuRegions1{i};
+        cfuInfo(i).occurrence = cfuOccurrence1(i,:);
+        cfuInfo(i).meanCurve = cfuCurves1(i,:);
+        cfuInfo(i).meanDff = cfuDFFCurves1(i,:);
+        cfuInfo(i).timeWindow = cfuTimeWindow1(i,:);
+        cfuInfo(i).nonTimeWindow = cfuNonTimeWindow1(i,:);
+        cfuInfo(i).frequencyStats = calcFreqStats(tPeaks, opts.frameRate);
         
         % Calculate uncertain events
         % Column 10: filter gray events using exact frame-wise IoU.
@@ -223,9 +223,9 @@ function CFURunGui(~,~,fCFU,f)
         end
         
         finalGrayEvts = initialGrayEvts(keepIdx);
-        cfuInfo{i,10} = finalGrayEvts;
-        cfuInfo{i,13} = cfuParentIds1(i); % original hierarchy cluster ID
-        cfuInfo{i,14} = cfuMemberships1{i}; % shared-event local masks and scores
+        cfuInfo(i).grayEventIds = finalGrayEvts;
+        cfuInfo(i).parentId = cfuParentIds1(i);
+        cfuInfo(i).memberships = cfuMemberships1{i};
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
     setappdata(fCFU,'cfuMergeDiagnostics1',mergeDiagnostics1);
@@ -284,7 +284,7 @@ function CFURunGui(~,~,fCFU,f)
             cfu.membershipTimeWindows(cfuMemberships2, cfuRegions2, opts.sz);
         waitbar(0.9,ff);
         
-        cfuInfo = cell(nCFU,14);
+        cfuInfo = cfu.newCFUInfo(nCFU);
         
         for i = 1:nCFU
             evtInCFU = CFU_lst2{i};
@@ -305,17 +305,17 @@ function CFURunGui(~,~,fCFU,f)
                 cfuOccurrence2(i,round(riseT)) = true;
             end
             
-            cfuInfo{i,1} = i;
-            cfuInfo{i,2} = CFU_lst2{i};   % Slice
-            cfuInfo{i,3} = cfuRegions2{i};
-            cfuInfo{i,4} = cfuOccurrence2(i,:);
-            cfuInfo{i,5} = cfuCurves2(i,:);
-            cfuInfo{i,6} = cfuDFFCurves2(i,:);
-            cfuInfo{i,7} = cfuTimeWindow2(i,:);
-            cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
-            cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
-            cfuInfo{i,13} = cfuParentIds2(i); % original hierarchy cluster ID
-            cfuInfo{i,14} = cfuMemberships2{i}; % shared-event local masks and scores
+            cfuInfo(i).id = i;
+            cfuInfo(i).eventIds = CFU_lst2{i};
+            cfuInfo(i).weightMap = cfuRegions2{i};
+            cfuInfo(i).occurrence = cfuOccurrence2(i,:);
+            cfuInfo(i).meanCurve = cfuCurves2(i,:);
+            cfuInfo(i).meanDff = cfuDFFCurves2(i,:);
+            cfuInfo(i).timeWindow = cfuTimeWindow2(i,:);
+            cfuInfo(i).nonTimeWindow = cfuNonTimeWindow2(i,:);
+            cfuInfo(i).frequencyStats = calcFreqStats(tPeaks, opts.frameRate);
+            cfuInfo(i).parentId = cfuParentIds2(i);
+            cfuInfo(i).memberships = cfuMemberships2{i};
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
         setappdata(fCFU,'cfuMergeDiagnostics2',mergeDiagnostics2);

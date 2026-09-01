@@ -22,17 +22,17 @@ function updtCFUcurve(~,~,fCFU,f)
         cols1 = getappdata(fCFU,'cols1')/255;
         cols2 = getappdata(fCFU,'cols2')/255;
         if(selectCFUs(1,1)==1)
-            x1 = cfuInfo1{selectCFUs(1,2),5};
-            seq1 = cfuInfo1{selectCFUs(1,2),4};
+            x1 = cfuInfo1(selectCFUs(1,2)).meanCurve;
+            seq1 = cfuInfo1(selectCFUs(1,2)).occurrence;
             col1 = cols1(selectCFUs(1,2),:);
-            TW1 = cfuInfo1{selectCFUs(1,2),7};
-            nonTW1 = cfuInfo1{selectCFUs(1,2),8};
+            TW1 = cfuInfo1(selectCFUs(1,2)).timeWindow;
+            nonTW1 = cfuInfo1(selectCFUs(1,2)).nonTimeWindow;
         else
-            x1 = cfuInfo2{selectCFUs(1,2),5};
-            seq1 = cfuInfo2{selectCFUs(1,2),4};
+            x1 = cfuInfo2(selectCFUs(1,2)).meanCurve;
+            seq1 = cfuInfo2(selectCFUs(1,2)).occurrence;
             col1 = cols2(selectCFUs(1,2),:);
-            TW1 = cfuInfo2{selectCFUs(1,2),7};
-            nonTW1 = cfuInfo2{selectCFUs(1,2),8};
+            TW1 = cfuInfo2(selectCFUs(1,2)).timeWindow;
+            nonTW1 = cfuInfo2(selectCFUs(1,2)).nonTimeWindow;
         end
         x1 = x1 - min(x1);
         x1 = x1/max(x1);
@@ -43,17 +43,17 @@ function updtCFUcurve(~,~,fCFU,f)
         plot(1:T,x12,'Color',[0.8,0.8,0.8],'LineWidth',1);
         % draw new curves
         if(selectCFUs(2,1)==1)
-            x2 = cfuInfo1{selectCFUs(2,2),5};
-            seq2 = cfuInfo1{selectCFUs(2,2),4};
+            x2 = cfuInfo1(selectCFUs(2,2)).meanCurve;
+            seq2 = cfuInfo1(selectCFUs(2,2)).occurrence;
             col2 = cols1(selectCFUs(2,2),:);
-            TW2 = cfuInfo1{selectCFUs(2,2),7};
-            nonTW2 = cfuInfo1{selectCFUs(2,2),8};
+            TW2 = cfuInfo1(selectCFUs(2,2)).timeWindow;
+            nonTW2 = cfuInfo1(selectCFUs(2,2)).nonTimeWindow;
         else
-            x2 = cfuInfo2{selectCFUs(2,2),5};
-            seq2 = cfuInfo2{selectCFUs(2,2),4};
+            x2 = cfuInfo2(selectCFUs(2,2)).meanCurve;
+            seq2 = cfuInfo2(selectCFUs(2,2)).occurrence;
             col2 = cols2(selectCFUs(2,2),:);
-            TW2 = cfuInfo2{selectCFUs(2,2),7};
-            nonTW2 = cfuInfo2{selectCFUs(2,2),8};
+            TW2 = cfuInfo2(selectCFUs(2,2)).timeWindow;
+            nonTW2 = cfuInfo2(selectCFUs(2,2)).nonTimeWindow;
         end
         x2 = x2 - min(x2);
         x2 = x2/max(x2);
@@ -76,6 +76,5 @@ function updtCFUcurve(~,~,fCFU,f)
         guidata(fCFU,fh);
     end
 end
-
 
 

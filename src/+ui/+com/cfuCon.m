@@ -421,8 +421,8 @@ if(isempty(needLoad))
     needLoad = false;
 end
 if(needLoad && ~isempty(getappdata(fOut,'cfuInfo1')))
-    setappdata(fCFU,'cfuInfo1',getappdata(fOut,'cfuInfo1'));
-    setappdata(fCFU,'cfuInfo2',getappdata(fOut,'cfuInfo2'));
+    setappdata(fCFU,'cfuInfo1',cfu.normalizeCFUInfo(getappdata(fOut,'cfuInfo1')));
+    setappdata(fCFU,'cfuInfo2',cfu.normalizeCFUInfo(getappdata(fOut,'cfuInfo2')));
     setappdata(fCFU,'cols1',getappdata(fOut,'cols1'));
     setappdata(fCFU,'colorMap1',getappdata(fOut,'colorMap1'));
     setappdata(fCFU,'cols2',getappdata(fOut,'cols2'));
