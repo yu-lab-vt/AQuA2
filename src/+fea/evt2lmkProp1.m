@@ -10,12 +10,15 @@ nLmk = numel(lmkMsk);
 
 sck = min(sqrt(10000/H/W),1);
 datSx = imresize(datS,sck);  % !! resizing may introduce artifacts
-lmkMskx = cell(0);
+lmkMskx = cell(nLmk,1);
+lmkPix = cell(nLmk,1);
 for kk=1:nLmk
     m0 = lmkMsk{kk};
     m0s = imresize(m0,sck);
     lmkMskx{kk} = m0s>0;
+    lmkPix{kk} = find(lmkMskx{kk});
 end
+
 [H,W,T] = size(datSx);
 
 if H*W*T>100^3
@@ -71,16 +74,12 @@ for kk=1:numel(thrRg)
     evt0s = squeeze(sum(evt0,3)>0);
     for ii=1:nLmk
         msk00 = lmkMskx{ii};
-        [h0,w0] = find(msk00>0);
-        %h00 = mean(h0); w00 = mean(w0);
-        %msk00 = zeros(H,W); msk00(max(round(h00),1),max(round(w00),1)) = 1;
-        if sum(evt0s(msk00>0))==0
-            [h1,w1] = find(evt0s>0);
-            tmp = inf(H,W);
-            for jj=1:numel(h0)
-                dist00 = sqrt((h1-h0(jj)).^2+(w1-w0(jj)).^2);            
-                tmp(evt0s>0) = min(tmp(evt0s),dist00);
-            end
+        if ~any(evt0s(lmkPix{ii}))
+            % bwdist gives the same minimum Euclidean distance as the
+            % previous landmark-pixel loop. Keep non-event pixels at Inf,
+            % matching the previous distance map exactly where it is used.
+            tmp = double(bwdist(msk00));
+            tmp(~evt0s) = inf;
         else
             tmp = bwdistgeodesic(evt0s,msk00>0);
         end        
@@ -202,19 +201,6 @@ for kk=1:numel(thrRg)
             % gather pixel level propagation w.r.t. landmarks
             pixTwd(bdCur,:) = pixTwd(bdCur,:)+dxPos;
             pixAwy(bdCur,:) = pixAwy(bdCur,:)+dxNeg;           
-                        
-            if 0
-                lmkSel = 2;
-                tmp1 = zeros(H,W); bd1 = bdCur(dxPos(:,lmkSel)>0); tmp1(bd1) = 1;
-                tmp2 = zeros(H,W); bd2 = bdCur(dxNeg(:,lmkSel)>0); tmp2(bd2) = 1;
-                tmp3 = lmkMsk{vv}*0.3; tmp3(bdPre) = 1;
-                tmp = cat(3,tmp1,tmp2,tmp3); figure;imshow(tmp)                
-                text(20,20,sprintf('Toward %f - Away %f',...
-                    sum(dxPos(:,lmkSel)),sum(dxNeg(:,lmkSel))),'Color','y');
-                %pause(2); 
-                keyboard
-                close
-            end
             
             % combine results from pixels
             dxAllPos(ii,:) = dxAllPos(ii,:) + sum(dxPos,1);
@@ -259,10 +245,6 @@ if isBig>0
 end
 
 end
-
-
-
-
 
 
 

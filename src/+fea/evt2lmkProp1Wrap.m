@@ -12,10 +12,12 @@ thrRg = minThr:0.1:0.9;
 % landmarks
 nEvts = numel(evts);
 nLmk = numel(lmkLst);
-% lmkLst = cell(nLmk,1);
-% for ii=1:nLmk
-%     lmkLst{ii} = find(lmkMsk{ii}>0);
-% end
+lmkH = cell(nLmk,1);
+lmkW = cell(nLmk,1);
+for ii=1:nLmk
+    [lmkH{ii},lmkW{ii}] = ind2sub([H,W],lmkLst{ii});
+end
+
 
 % extract blocks
 chgToward = zeros(nEvts,nLmk);
@@ -62,10 +64,9 @@ for nn=1:numel(evts)
     % for outside part, stick it to the border
     lmkMsk1 = cell(nLmk,1);
     for ii=1:nLmk
-        [h0k,w0k] = ind2sub([H,W],lmkLst{ii});
         msk0 = zeros(H1,W1);
-        h1k = h0k - min(rgH) + 1;
-        w1k = w0k - min(rgW) + 1;
+        h1k = lmkH{ii} - rgH(1) + 1;
+        w1k = lmkW{ii} - rgW(1) + 1;
         h1ks = min(max(h1k,1),H1);
         w1ks = min(max(w1k,1),W1);
         msk0(h1ks,w1ks) = 1;
@@ -102,7 +103,5 @@ rr.chgTowardThrFrame = chgTowardThrFrame;
 rr.chgAwayThrFrame = chgAwayThrFrame;
 
 end
-
-
 
 
