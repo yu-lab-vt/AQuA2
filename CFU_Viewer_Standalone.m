@@ -20,6 +20,10 @@ function CFU_Viewer_Standalone()
             'result file (missing cfuInfo1 or datPro).'], 'Invalid File');
         return;
     end
+    loadedData.cfuInfo1 = cfu.normalizeCFUInfo(loadedData.cfuInfo1);
+    if isfield(loadedData, 'cfuInfo2')
+        loadedData.cfuInfo2 = cfu.normalizeCFUInfo(loadedData.cfuInfo2);
+    end
 
     opts = buildViewerOptions(loadedData, pathname, filename);
     fOut = createViewerContext(loadedData.datPro, opts);
@@ -54,7 +58,7 @@ function opts = buildViewerOptions(loadedData, pathname, filename)
     if isempty(loadedData.cfuInfo1)
         timePoints = 1000;
     else
-        timePoints = size(loadedData.cfuInfo1{1, 5}, 2);
+        timePoints = size(loadedData.cfuInfo1(1).meanCurve, 2);
     end
 
     opts = struct();
@@ -101,11 +105,16 @@ function setViewerReadOnly(fCFU)
     fh.deOutRun.Text = 'Run (Disabled)';
     fh.alpha.Enable = 'off';
     fh.minNumEvt.Enable = 'off';
+    fh.postMergeCorrelation.Enable = 'off';
+    fh.spatialOption.Enable = 'off';
     if isfield(fh, 'alpha2')
         fh.alpha2.Enable = 'off';
     end
     if isfield(fh, 'minNumEvt2')
         fh.minNumEvt2.Enable = 'off';
+    end
+    if isfield(fh, 'postMergeCorrelation2')
+        fh.postMergeCorrelation2.Enable = 'off';
     end
     fh.loadCFUButton.Enable = 'off';
     fh.buttonGroup.Enable = 'off';

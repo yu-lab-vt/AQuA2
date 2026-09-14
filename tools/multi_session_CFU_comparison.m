@@ -22,6 +22,8 @@ session2 = load(p2);
 [H, W] = size(session1.datPro);
 cfu1 = session1.cfuInfo1;
 cfu2 = session2.cfuInfo1;
+cfu1 = cfu.normalizeCFUInfo(cfu1);
+cfu2 = cfu.normalizeCFUInfo(cfu2);
 nCFU1 = size(cfu1, 1);
 nCFU2 = size(cfu2, 1);
 regionThr = 0.1;
@@ -32,10 +34,10 @@ cfuMap1 = false(H, W, nCFU1);
 cfuMap2 = false(H, W, nCFU2);
 
 for i = 1:nCFU1
-    cfuMap1(:, :, i) = cfu1{i, 3} > regionThr;
+    cfuMap1(:, :, i) = cfu1(i).weightMap > regionThr;
 end
 for i = 1:nCFU2
-    cfuMap2(:, :, i) = cfu2{i, 3} > regionThr;
+    cfuMap2(:, :, i) = cfu2(i).weightMap > regionThr;
 end
 
 %% Pair
@@ -46,12 +48,12 @@ pairs2 = zeros(nCFU2, 2);
 cfuMapCheck2 = reshape(cfuMap2, [], nCFU2);
 for i = 1:nCFU1
     id1 = i;
-    pix = find(cfu1{id1, 3} > regionThr);
+    pix = find(cfu1(id1).weightMap > regionThr);
     candidates = find(sum(cfuMapCheck2(pix, :),1));
     IoUs = zeros(1, numel(candidates));
     for j = 1:numel(candidates)
         id2 = candidates(j);
-        pix2 = find(cfu2{id2, 3} > regionThr);
+        pix2 = find(cfu2(id2).weightMap > regionThr);
         pixIn = intersect(pix, pix2);
         pixUnion = union(pix, pix2);
         IoUs(j) = numel(pixIn) / numel(pixUnion);
@@ -72,14 +74,14 @@ for i = 1:nCFU1
     if pairs1(i, 1) > 0
         id1 = i;
         id2 = pairs1(i);
-        common{numel(common) + 1, 1} = (cfu1{id1, 3} + cfu2{id2, 3}) / 2;
+        common{numel(common) + 1, 1} = (cfu1(id1).weightMap + cfu2(id2).weightMap) / 2;
     else
-        only1{numel(only1) + 1, 1} = cfu1{i, 3};
+        only1{numel(only1) + 1, 1} = cfu1(i).weightMap;
     end
 end
 for i = 1:nCFU2
     if pairs2(i, 1) == 0
-        only2{numel(only2) + 1, 1} = cfu2{i, 3};
+        only2{numel(only2) + 1, 1} = cfu2(i).weightMap;
     end
 end
 
@@ -91,9 +93,9 @@ for i = 1:nCFU1
     while (x(1)>0.8*255 && x(2)>0.8*255 && x(3)>0.8*255) || sum(x)<255
         x = randi(255,[1,3]);
     end
-    ov(:, :, 1) = ov(:, :, 1) + 0.8 * x(1) / 255 * cfu1{i,3};
-    ov(:, :, 2) = ov(:, :, 2) + 0.8 * x(2) / 255 * cfu1{i,3};
-    ov(:, :, 3) = ov(:, :, 3) + 0.8 * x(3) / 255 * cfu1{i,3};
+    ov(:, :, 1) = ov(:, :, 1) + 0.8 * x(1) / 255 * cfu1(i).weightMap;
+    ov(:, :, 2) = ov(:, :, 2) + 0.8 * x(2) / 255 * cfu1(i).weightMap;
+    ov(:, :, 3) = ov(:, :, 3) + 0.8 * x(3) / 255 * cfu1(i).weightMap;
 end
 figure;
 imshow(ov)
@@ -105,9 +107,9 @@ for i = 1:nCFU2
     while (x(1)>0.8*255 && x(2)>0.8*255 && x(3)>0.8*255) || sum(x)<255
         x = randi(255,[1,3]);
     end
-    ov(:, :, 1) = ov(:, :, 1) + 0.8 * x(1) / 255 * cfu2{i,3};
-    ov(:, :, 2) = ov(:, :, 2) + 0.8 * x(2) / 255 * cfu2{i,3};
-    ov(:, :, 3) = ov(:, :, 3) + 0.8 * x(3) / 255 * cfu2{i,3};
+    ov(:, :, 1) = ov(:, :, 1) + 0.8 * x(1) / 255 * cfu2(i).weightMap;
+    ov(:, :, 2) = ov(:, :, 2) + 0.8 * x(2) / 255 * cfu2(i).weightMap;
+    ov(:, :, 3) = ov(:, :, 3) + 0.8 * x(3) / 255 * cfu2(i).weightMap;
 end
 figure;
 imshow(ov)

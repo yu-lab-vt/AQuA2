@@ -1,6 +1,19 @@
 function CFURunGui(~,~,fCFU,f)
     
     fh = guidata(fCFU);
+    if isappdata(fCFU, 'manualCFUShapes')
+        manualCFUShapes = getappdata(fCFU, 'manualCFUShapes');
+        if isstruct(manualCFUShapes) && ~isempty(manualCFUShapes)
+            selection = uiconfirm(fCFU, ...
+                'Running automatic CFU detection will remove all manually drawn CFUs. Continue?', ...
+                'Manual CFUs Will Be Cleared', ...
+                'Options', {'Run detection', 'Cancel'}, ...
+                'DefaultOption', 'Cancel', 'CancelOption', 'Cancel', 'Icon', 'warning');
+            if ~strcmp(selection, 'Run detection')
+                return;
+            end
+        end
+    end
     if isfield(fh,'spatialBoundaryButton')
         fh.spatialBoundaryButton.Enable = 'off';
     end
@@ -53,7 +66,8 @@ function CFURunGui(~,~,fCFU,f)
     end
 
     ff = waitbar(0,'Calculating cfu info');
-    [cfuRegions1,CFU_lst1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    [cfuRegions1,CFU_lst1,~,~,cfuParentIds1,cfuMemberships1] = cfu.CFU_minMeasure(cfu_pre1,validEvts1,fh.averPro1,opts.sz,alpha,minNumEvt,false);
+    cfuMemberships1 = cfu.materializeCFUMemberships(cfuMemberships1,evtLst1,opts.sz);
     % End Developer Ver 2025/03/06
 
     waitbar(0.3,ff);
@@ -63,43 +77,31 @@ function CFURunGui(~,~,fCFU,f)
     datVec = reshape(datOrg1,[],T);
     datVec = datVec*(opts.maxValueDat1 - opts.minValueDat1) + opts.minValueDat1;
     clear datOrg1;
-    cfuCurves1 = zeros(numel(cfuRegions1),T);
-    cfuDFFCurves1 = zeros(numel(cfuRegions1),T);
-    for i = 1:numel(cfuRegions1)
-        weightMap = cfuRegions1{i};
-        weightMap = weightMap(:);
-        idx = find(weightMap>0);
-        cfuCurves1(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
-        cfuDFFCurves1(i,:) = getdFF(cfuCurves1(i,:), opts.movAvgWin, opts.cut);
-%         cfuDFCurves1(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
-    end
+    [cfuCurves1, cfuDFFCurves1] = cfu.computeCFUCurves( ...
+        cfuRegions1, datVec, opts.movAvgWin, opts.cut);
+    mergeParameters = cfu.defaultCFUMergeParameters();
+    mergeParameters.MinimumCurveCorrelation = 0.85 + 0.15 * ...
+        min(max(fh.postMergeCorrelation.Value, 0), 1);
+    mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
+        updateMergeWaitbar(ff, 1, stage, roundIndex, maxRounds, count);
+    [cfuRegions1, CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
+        cfuDFFCurves1, ~, ~, mergeDiagnostics1] = cfu.iterativeMergeSimilarCFUs(cfuRegions1, ...
+        CFU_lst1, cfuParentIds1, cfuMemberships1, cfuCurves1, ...
+        cfuDFFCurves1, datVec, opts.movAvgWin, opts.cut, mergeParameters);
     waitbar(0.6,ff);
     
     % rising time judgement
     thrVec = 0.4:0.1:0.6;
     cfuOccurrence1 = false(numel(CFU_lst1),T);
-    cfuMapVideo = zeros(H,W,L,T,'uint16');
     nCFU = numel(cfuRegions1);
-    for i = 1:nCFU
-        evtInCFU = CFU_lst1{i};
-        for j = 1:numel(evtInCFU)
-            label = evtInCFU(j);
-            cfuMapVideo(evtLst1{label}) = i;
-        end
-    end
+    [cfuTimeWindow1, cfuNonTimeWindow1, overlappingCFUs1] = ...
+        cfu.membershipTimeWindows(cfuMemberships1, cfuRegions1, opts.sz);
     waitbar(0.9,ff);
     
-    cfuMapVideo = reshape(cfuMapVideo,[],T);
-    cfuTimeWindow1 = false(nCFU,T);
-    cfuNonTimeWindow1 = false(nCFU,T);
-    
-    cfuInfo = cell(nCFU,10);
+    cfuInfo = cfu.newCFUInfo(nCFU);
     
     for i = 1:nCFU
         pix = find(cfuRegions1{i}>0.1);
-        cfuTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-        cfuNonTimeWindow1(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-        cfuNonTimeWindow1(i,cfuTimeWindow1(i,:)) = false;
         evtInCFU = CFU_lst1{i};
         x0 = cfuCurves1(i,:);
         x0 = movmean(x0,2);
@@ -112,7 +114,7 @@ function CFURunGui(~,~,fCFU,f)
             [ih_ev, iw_ev, il_ev, it_ev] = ind2sub([H,W,L,T],evtLst1{label});
             t0 = min(it_ev);
             t1 = max(it_ev);
-            % 提取仅仅落入当前 CFU 空间范围内的活跃时间帧
+            % Extract active frames located within the current CFU spatial support.
             spa_ev = sub2ind([H,W,L], ih_ev, iw_ev, il_ev);
             ownTimeFrames{j} = unique(it_ev(ismember(spa_ev, pix)));
             
@@ -122,52 +124,51 @@ function CFURunGui(~,~,fCFU,f)
             cfuOccurrence1(i,round(riseT)) = true;
         end
         
-        cfuInfo{i,1} = i;
-        cfuInfo{i,2} = CFU_lst1{i};   % Slice
-        cfuInfo{i,3} = cfuRegions1{i};
-        cfuInfo{i,4} = cfuOccurrence1(i,:);
-        cfuInfo{i,5} = cfuCurves1(i,:);
-        cfuInfo{i,6} = cfuDFFCurves1(i,:); 
-        cfuInfo{i,7} = cfuTimeWindow1(i,:); 
-        cfuInfo{i,8} = cfuNonTimeWindow1(i,:); 
-        cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate); 
+        cfuInfo(i).id = i;
+        cfuInfo(i).eventIds = CFU_lst1{i};
+        cfuInfo(i).weightMap = cfuRegions1{i};
+        cfuInfo(i).occurrence = cfuOccurrence1(i,:);
+        cfuInfo(i).meanCurve = cfuCurves1(i,:);
+        cfuInfo(i).meanDff = cfuDFFCurves1(i,:);
+        cfuInfo(i).timeWindow = cfuTimeWindow1(i,:);
+        cfuInfo(i).nonTimeWindow = cfuNonTimeWindow1(i,:);
+        cfuInfo(i).frequencyStats = calcFreqStats(tPeaks, opts.frameRate);
         
         % Calculate uncertain events
-        % --- 第10列：使用“精确逐帧 IoU”筛选灰色事件（包含自身筛查与内部去重） ---
-        iouThr = 0.5; % 逐帧重叠率 > 50% 即判定为同一生理活动的碎片
+        % Column 10: filter gray events using exact frame-wise IoU.
+        iouThr = 0.5; % Frame-wise IoU above 50% denotes one fragmented activity.
         iouThr2 = 0.1;
-        overlappingCFUs = unique(cfuMapVideo(pix, :));
-        overlappingCFUs(overlappingCFUs == 0) = [];
-        overlappingCFUs(overlappingCFUs == i) = [];
+        overlappingCFUs = overlappingCFUs1{i};
         
         initialGrayEvts = [];
-        grayTimeFramesCell = {}; % 缓存灰色事件的精确活跃帧，用于后续内部两两比较
+        grayTimeFramesCell = {}; % Cache exact gray-event frames for pairwise checks.
         
         for oCfuIdx = overlappingCFUs(:)'
-            evtsInOther = CFU_lst1{oCfuIdx};
+            evtsInOther = setdiff(cfuMemberships1{oCfuIdx}.EventID, ...
+                cfuMemberships1{i}.EventID, 'stable');
             for eIdx = 1:numel(evtsInOther)
                 evID = evtsInOther(eIdx);
                 
-                % 1. 快速空间交集初筛
+                % 1. Fast spatial-intersection prefilter.
                 if ~isempty(intersect(cfu_pre1.evtIhw{evID}, pix))
                     
-                    % 2. 提取该灰色事件在当前区域内的确切活跃时间帧
+                    % 2. Extract this gray event's active frames inside the current CFU.
                     [ih_gray, iw_gray, il_gray, it_gray] = ind2sub([H,W,L,T],evtLst1{evID});
                     spa_gray = sub2ind([H,W,L], ih_gray, iw_gray, il_gray);
                     grayTimeFrames = unique(it_gray(ismember(spa_gray, pix)));
                     
-                    % 防止异常空帧
+                    % Guard against an empty frame list.
                     if isempty(grayTimeFrames)
                         continue;
                     end
 
-                    % 如果该灰色事件在当前区域的活跃时刻，有 >50% 落在了 CFU 的整体时间窗内
+                    % Reject when more than half of these frames fall in the CFU time window.
                     overlapGlobalCnt = sum(cfuTimeWindow1(i, grayTimeFrames));
                     if (overlapGlobalCnt / numel(grayTimeFrames)) > 0.5
-                        continue; % 判定为被 CFU 整体活动掩盖的无效事件，直接排除
+                        continue; % The CFU-wide activity already explains this event.
                     end
                     
-                    % 3. 检查与当前 CFU 自身事件的重复率
+                    % 3. Check duplication against events owned by the current CFU.
                     isDuplicate = false;
                     for k = 1:numel(ownTimeFrames)
                         own_t = ownTimeFrames{k};
@@ -175,7 +176,7 @@ function CFURunGui(~,~,fCFU,f)
                             continue;
                         end
                         
-                        % 基于精确帧计算 IoU
+                        % Compute IoU from exact frame sets.
                         inter_len = numel(intersect(own_t, grayTimeFrames));
                         union_len = numel(union(own_t, grayTimeFrames));
                         iou = inter_len / union_len;
@@ -194,13 +195,13 @@ function CFURunGui(~,~,fCFU,f)
             end
         end
         
-        % 4. 灰色事件内部的两两 IoU 筛查去重
+        % 4. Deduplicate gray events by their pairwise frame-wise IoU.
         nGray = numel(initialGrayEvts);
-        keepIdx = true(nGray, 1); % 标记位，标记为 true 的最终保留
+        keepIdx = true(nGray, 1); % A true entry is retained in the final list.
         
         for m = 1:nGray
             if ~keepIdx(m)
-                continue; % 已经被判定为重复而舍弃的，不再作为基准
+                continue; % Already rejected as a duplicate; do not use it as a reference.
             end
             frames_m = grayTimeFramesCell{m};
             
@@ -215,16 +216,19 @@ function CFURunGui(~,~,fCFU,f)
                 iou = inter_len / union_len;
                 
                 if iou > iouThr2
-                    % 发现高度重合，判定为代表了同一个峰，保留 m，剔除 n
+                    % Highly overlapping entries represent one peak: retain m and drop n.
                     keepIdx(n) = false;
                 end
             end
         end
         
         finalGrayEvts = initialGrayEvts(keepIdx);
-        cfuInfo{i,10} = finalGrayEvts;
+        cfuInfo(i).grayEventIds = finalGrayEvts;
+        cfuInfo(i).parentId = cfuParentIds1(i);
+        cfuInfo(i).memberships = cfuMemberships1{i};
     end
     setappdata(fCFU,'cfuInfo1',cfuInfo);
+    setappdata(fCFU,'cfuMergeDiagnostics1',mergeDiagnostics1);
     
     % cfuMap
     cfuMap1 = zeros(H,W,L,'uint16');
@@ -249,52 +253,40 @@ function CFURunGui(~,~,fCFU,f)
     %%
     if(~opts.singleChannel)
         fts2 = getappdata(f, 'fts2'); 
+        evtLst2 = getappdata(f, 'evt2');
         alpha = str2double(fh.alpha2.Value);
         minNumEvt = str2double(fh.minNumEvt2.Value);
-        [cfuRegions2,CFU_lst2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);    
+        [cfuRegions2,CFU_lst2,~,~,cfuParentIds2,cfuMemberships2] = cfu.CFU_minMeasure(cfu_pre2,true(numel(cfu_pre2.evtIhw),1),fh.averPro2,opts.sz,alpha,minNumEvt,false);
+        cfuMemberships2 = cfu.materializeCFUMemberships(cfuMemberships2,evtLst2,opts.sz);
         waitbar(0.3,ff);
         title('CFU in channel 2');
         datOrg2 = getappdata(f, 'datOrg2');
         datVec = reshape(datOrg2,[],T);
         datVec = datVec*(opts.maxValueDat2 - opts.minValueDat2) + opts.minValueDat2;
         clear datOrg2;
-        cfuCurves2 = zeros(numel(cfuRegions2),T);
-        cfuDFFCurves2 = zeros(numel(cfuRegions2),T);
-        for i = 1:numel(cfuRegions2)
-            weightMap = cfuRegions2{i};
-            weightMap = weightMap(:);
-            idx = find(weightMap>0);
-            cfuCurves2(i,:) = weightMap(idx)'*double(datVec(idx,:))/sum(weightMap);
-            cfuDFFCurves2(i,:) = getdFF(cfuCurves2(i,:), opts.movAvgWin, opts.cut);
-%             cfuDFFCurves2(i,:) = weightMap(idx)'*double(dFVec(idx,:))/sum(weightMap);
-        end
+        [cfuCurves2, cfuDFFCurves2] = cfu.computeCFUCurves( ...
+            cfuRegions2, datVec, opts.movAvgWin, opts.cut);
+        mergeParameters = cfu.defaultCFUMergeParameters();
+        mergeParameters.MinimumCurveCorrelation = 0.85 + 0.15 * ...
+            min(max(fh.postMergeCorrelation2.Value, 0), 1);
+        mergeParameters.ProgressCallback = @(stage,roundIndex,maxRounds,count) ...
+            updateMergeWaitbar(ff, 2, stage, roundIndex, maxRounds, count);
+        [cfuRegions2, CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
+            cfuDFFCurves2, ~, ~, mergeDiagnostics2] = cfu.iterativeMergeSimilarCFUs(cfuRegions2, ...
+            CFU_lst2, cfuParentIds2, cfuMemberships2, cfuCurves2, ...
+            cfuDFFCurves2, datVec, opts.movAvgWin, opts.cut, mergeParameters);
         waitbar(0.6,ff);
-        evtLst2 = getappdata(f, 'evt2');
         % rising time judgement
         thrVec = 0.4:0.1:0.6;
         cfuOccurrence2 = false(numel(CFU_lst2),T);
-        cfuMapVideo = zeros(H,W,L,T,'uint16');
         nCFU = numel(cfuRegions2);
-        for i = 1:numel(CFU_lst2)
-            evtInCFU = CFU_lst2{i};
-            for j = 1:numel(evtInCFU)
-                label = evtInCFU(j);
-                cfuMapVideo(evtLst2{label}) = i;
-            end
-        end
+        [cfuTimeWindow2, cfuNonTimeWindow2] = ...
+            cfu.membershipTimeWindows(cfuMemberships2, cfuRegions2, opts.sz);
         waitbar(0.9,ff);
-
-        cfuMapVideo = reshape(cfuMapVideo,[],T);
-        cfuTimeWindow2 = false(nCFU,T);
-        cfuNonTimeWindow2 = false(nCFU,T);
         
-        cfuInfo = cell(nCFU,9); 
+        cfuInfo = cfu.newCFUInfo(nCFU);
         
         for i = 1:nCFU
-            pix = find(cfuRegions2{i}>0.1);
-            cfuTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)==i>0,1);
-            cfuNonTimeWindow2(i,:) = sum(cfuMapVideo(pix,:)>0 & cfuMapVideo(pix,:)~=i,1);
-            cfuNonTimeWindow2(i,cfuTimeWindow2(i,:)) = false;
             evtInCFU = CFU_lst2{i};
             x0 = cfuCurves2(i,:);
             x0 = movmean(x0,2);
@@ -313,17 +305,20 @@ function CFURunGui(~,~,fCFU,f)
                 cfuOccurrence2(i,round(riseT)) = true;
             end
             
-            cfuInfo{i,1} = i;
-            cfuInfo{i,2} = CFU_lst2{i};   % Slice
-            cfuInfo{i,3} = cfuRegions2{i};
-            cfuInfo{i,4} = cfuOccurrence2(i,:);
-            cfuInfo{i,5} = cfuCurves2(i,:);
-            cfuInfo{i,6} = cfuDFFCurves2(i,:);
-            cfuInfo{i,7} = cfuTimeWindow2(i,:);
-            cfuInfo{i,8} = cfuNonTimeWindow2(i,:);
-            cfuInfo{i,9} = calcFreqStats(tPeaks, opts.frameRate);   % 2025/12/04 updated
+            cfuInfo(i).id = i;
+            cfuInfo(i).eventIds = CFU_lst2{i};
+            cfuInfo(i).weightMap = cfuRegions2{i};
+            cfuInfo(i).occurrence = cfuOccurrence2(i,:);
+            cfuInfo(i).meanCurve = cfuCurves2(i,:);
+            cfuInfo(i).meanDff = cfuDFFCurves2(i,:);
+            cfuInfo(i).timeWindow = cfuTimeWindow2(i,:);
+            cfuInfo(i).nonTimeWindow = cfuNonTimeWindow2(i,:);
+            cfuInfo(i).frequencyStats = calcFreqStats(tPeaks, opts.frameRate);
+            cfuInfo(i).parentId = cfuParentIds2(i);
+            cfuInfo(i).memberships = cfuMemberships2{i};
         end
         setappdata(fCFU,'cfuInfo2',cfuInfo);
+        setappdata(fCFU,'cfuMergeDiagnostics2',mergeDiagnostics2);
         
         cfuMap2 = zeros(H,W,L,'uint16');
         for i = 1:nCFU
@@ -382,34 +377,23 @@ function CFURunGui(~,~,fCFU,f)
     delete(ff);
 end
 
-function dff = getdFF(x0,window,cut)
-    datMA = movmean(x0,window);
-    T = numel(datMA);
-    step = round(0.5*cut);
-    nSegment = max(1,ceil(T/step)-1);
-
-    F0 = zeros(size(x0));
-    for k = 1:nSegment
-        t0 = 1 + (k-1)*step;
-        t1 = min(T,t0+cut);
-        
-        [curMinV,curMinT] = min(datMA(t0:t1));
-        curMinT = curMinT + t0 - 1;
-        if(k==1)
-            F0(1:curMinT) = curMinV;
-        else
-            F0(preMinT:curMinT) = preMinV + (curMinV-preMinV)/(curMinT-preMinT)*[0:curMinT-preMinT]; 
-        end      
-        if(k==nSegment)
-            F0(curMinT:end) = curMinV;
-        end
-        preMinT = curMinT;
-        preMinV = curMinV;
+function updateMergeWaitbar(waitbarHandle, channelIndex, stage, roundIndex, maxRounds, count)
+    if ~isgraphics(waitbarHandle)
+        return;
     end
-
-    sigma1 = max(1e-4,sqrt(mean((x0(2:end)-x0(1:end-1)).^2)/2));
-    F0 = F0 - pre.obtainBias(window,cut)*sigma1;
-    dff = (x0-F0)./(F0+1e-4);
+    progressBase = 0.32;
+    progressSpan = 0.24;
+    if strcmp(stage, 'evaluate')
+        progress = progressBase + progressSpan * (roundIndex - 1) / maxRounds;
+        message = sprintf('CFU channel %d: merge round %d/%d, evaluating candidates', ...
+            channelIndex, roundIndex, maxRounds);
+    else
+        progress = progressBase + progressSpan * (roundIndex - 0.5) / maxRounds;
+        message = sprintf('CFU channel %d: merge round %d/%d, updating %d CFUs', ...
+            channelIndex, roundIndex, maxRounds, count);
+    end
+    waitbar(min(progress, 0.58), waitbarHandle, message);
+    drawnow limitrate;
 end
 
 % Helper function

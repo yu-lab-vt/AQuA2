@@ -40,7 +40,7 @@ function didApply = applySpatialBoundary(fCFU)
     % for manually drawn Ch2 CFUs and does not alter the existing Ch1 API.
     if isappdata(fCFU, 'cfuInfo2')
         cfuInfo2 = getappdata(fCFU, 'cfuInfo2');
-        if iscell(cfuInfo2) && ~isempty(cfuInfo2)
+        if isstruct(cfuInfo2) && ~isempty(cfuInfo2)
             [cfuInfo2, cfuLabels2, isValid2] = classifyCFUs(cfuInfo2, xData, yData, ...
                 classA, classB, height, width, depth, isYNormal);
             if isValid2
@@ -58,7 +58,7 @@ end
 function [cfuInfo, cfuLabels, isValid] = classifyCFUs(cfuInfo, xData, yData, ...
         classA, classB, height, width, depth, isYNormal)
     cfuLabels = [];
-    isValid = iscell(cfuInfo) && size(cfuInfo, 2) >= 3 && ~isempty(cfuInfo);
+    isValid = isstruct(cfuInfo) && isfield(cfuInfo, 'weightMap') && ~isempty(cfuInfo);
     if ~isValid
         return;
     end
@@ -66,7 +66,7 @@ function [cfuInfo, cfuLabels, isValid] = classifyCFUs(cfuInfo, xData, yData, ...
     centres = zeros(nCFU, 2);
     for cfuIndex = 1:nCFU
         [centres(cfuIndex, :), isFootprintValid] = getCFUCentre( ...
-            cfuInfo{cfuIndex, 3}, height, width, depth);
+            cfuInfo(cfuIndex).weightMap, height, width, depth);
         if ~isFootprintValid
             isValid = false;
             return;
@@ -88,7 +88,9 @@ function [cfuInfo, cfuLabels, isValid] = classifyCFUs(cfuInfo, xData, yData, ...
     cfuLabels(isAbove) = classA;
     % Column 10 contains gray-event metadata, so the spatial class lives
     % in column 11 and the manual-CFU flag remains in column 12.
-    cfuInfo(:, 11) = num2cell(cfuLabels);
+    for cfuIndex = 1:nCFU
+        cfuInfo(cfuIndex).spatialClass = cfuLabels(cfuIndex);
+    end
 end
 
 function [xData, yData, classA, classB, isValid] = getBoundaryData(boundary, imageSize)

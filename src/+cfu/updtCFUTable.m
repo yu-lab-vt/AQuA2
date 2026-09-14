@@ -15,13 +15,13 @@ for i=1:numel(favLst)
         id = id - nCFU1;
         dat{i,2} = 2;
         dat{i,3} = id;
-        dat{i,4} = numel(cfuInfo2{id,2});
-        dat{i,5} = mat2str(cfuInfo2{id,2});
+        dat{i,4} = numel(cfuInfo2(id).eventIds);
+        dat{i,5} = mat2str(cfuInfo2(id).eventIds);
     else
         dat{i,2} = 1;
         dat{i,3} = id;
-        dat{i,4} = numel(cfuInfo1{id,2});
-        dat{i,5} = mat2str(cfuInfo1{id,2});
+        dat{i,4} = numel(cfuInfo1(id).eventIds);
+        dat{i,5} = mat2str(cfuInfo1(id).eventIds);
     end
 end
 tb.Data = dat;

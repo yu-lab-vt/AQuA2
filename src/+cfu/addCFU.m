@@ -19,10 +19,15 @@ else
     end
 end
 
+if isempty(addCFU)
+    return;
+end
+
 if ~ismember(addCFU,fh.favCFUs)
     fh.favCFUs = [fh.favCFUs;addCFU];
 end
 
 guidata(fCFU,fh);
 cfu.updtCFUTable(fCFU);
+ui.updtCFUint([],[],fCFU,false);
 end

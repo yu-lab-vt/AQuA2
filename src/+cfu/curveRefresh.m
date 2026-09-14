@@ -12,21 +12,21 @@ function curveRefresh(f,cfuLst)
     delete(hh);
     hh = findobj(ax,'Type','text');
     delete(hh);
-    T = numel(cfuInfo1{1,5});
+    T = numel(cfuInfo1(1).meanCurve);
     ax.XLim = [0,T+1];
     for i = 1:numel(cfuLst)
         id = cfuLst(i);
         if id>nCFU1
             id = id - nCFU1;
-            x1 = cfuInfo2{id,5};
+            x1 = cfuInfo2(id).meanCurve;
             col1 = cols2(id,:);
-            TW1 = cfuInfo2{id,7};
-            nonTW1 = cfuInfo2{id,8};
+            TW1 = cfuInfo2(id).timeWindow;
+            nonTW1 = cfuInfo2(id).nonTimeWindow;
         else
-            x1 = cfuInfo1{id,5};
+            x1 = cfuInfo1(id).meanCurve;
             col1 = cols1(id,:);
-            TW1 = cfuInfo1{id,7};
-            nonTW1 = cfuInfo1{id,8};
+            TW1 = cfuInfo1(id).timeWindow;
+            nonTW1 = cfuInfo1(id).nonTimeWindow;
         end
 
         x1 = x1 - min(x1);
@@ -40,6 +40,5 @@ function curveRefresh(f,cfuLst)
     end
     ax.YLim = [0.2 - ofstGap*numel(cfuLst),1.2];
 end
-
 
 

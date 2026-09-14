@@ -14,8 +14,8 @@ Spatial data follow `opts.sz = [H, W, L, T]`, where `H`, `W`, `L`, and `T` are t
 
 | Variable | Description |
 | --- | --- |
-| `cfuInfo1` | Cell array containing one row per channel 1 CFU. |
-| `cfuInfo2` | Cell array containing one row per channel 2 CFU. Empty for single-channel data. |
+| `cfuInfo1` | Structure array containing one named record per channel 1 CFU. |
+| `cfuInfo2` | Structure array containing one named record per channel 2 CFU. Empty for single-channel data. |
 | `cfuRelation` | Pairwise CFU dependency results. |
 | `cfuGroupInfo` | CFU grouping results derived from `cfuRelation`. |
 | `cfuOpts` | CFU detection, dependency-analysis, and grouping parameters. |
@@ -28,7 +28,7 @@ Older files or batch-generated files can contain fewer variables. Use `isfield(r
 
 ## `cfuInfo1` and `cfuInfo2`
 
-`cfuInfo1` and `cfuInfo2` are `nCFU × nColumn` cell arrays. Each row describes one CFU in the corresponding channel. `cfuInfo{i,1}` is the local CFU index within that channel.
+`cfuInfo1` and `cfuInfo2` are `nCFU × 1` structure arrays. Each element describes one CFU in the corresponding channel. `cfuInfo(i).id` is the local CFU index within that channel.
 
 For a combined channel 1/channel 2 analysis, channel 2 global CFU indices are offset by the number of channel 1 CFUs:
 
@@ -36,27 +36,29 @@ For a combined channel 1/channel 2 analysis, channel 2 global CFU indices are of
 globalIndexCh2 = size(cfuInfo1, 1) + localIndexCh2;
 ```
 
-The number of columns can differ by AQuA2 version, channel, and enabled features. Check `size(cfuInfo, 2)` before reading optional columns.
+Current results always contain the fields below. When an older file is loaded in AQuA2, its legacy cell array is automatically converted to this structure format; unavailable historical values become empty fields.
 
-| Column | Field | Type / Size | Description |
-| --- | --- | --- | --- |
-| 1 | CFU ID | scalar | Local CFU index in the current channel. |
-| 2 | Event list | numeric vector | Event indices belonging to the CFU. Indices refer to the corresponding channel event list. A manual CFU stores events that overlap its ellipse. |
-| 3 | Spatial map | `H × W × L` numeric array, or an equal-length vector | Spatial weight map. The usual CFU footprint is `map > 0.1`. Automatically detected CFUs can have weighted maps; manual ellipse CFUs use a binary map. |
-| 4 | Occurrence sequence | logical `1 × T` | Estimated rising-frame sequence of member events. This sequence is used for dependency analysis. |
-| 5 | Mean curve | numeric `1 × T` | Mean fluorescence curve within the CFU footprint. |
-| 6 | Mean dF/F | numeric `1 × T` | Mean dF/F curve calculated from column 5. |
-| 7 | Time window | logical `1 × T` | Frames in which the CFU's own events occur inside its footprint. |
-| 8 | Non-time window | logical `1 × T` | Frames occupied by other CFUs in the same footprint but outside this CFU's time window. |
-| 9 | Frequency statistics | scalar struct | Frequency summary with fields `count`, `mainFreq`, `method`, `peakFreq80`, and `dt`. |
-| 10 | Gray-event list | numeric vector or empty | GUI channel 1 extension: filtered overlapping events from other CFUs. This column can be absent. It is normally empty for manual CFUs because their overlapping events are already stored in column 2. |
-| 11 | Spatial class | numeric scalar or empty | Class label assigned by a saved spatial boundary. This column can be absent when no boundary was used. |
-| 12 | Manual-CFU flag | logical scalar or empty | `true` identifies a manually drawn or adjusted ellipse CFU. Automatically detected CFUs are normally empty or `false`. |
+| Field | Type / Size | Description |
+| --- | --- | --- |
+| `id` | scalar | Local CFU index in the current channel. |
+| `eventIds` | numeric vector | Event indices belonging to the CFU. Indices refer to the corresponding channel event list. |
+| `weightMap` | `H × W × L` numeric array, or an equal-length vector | Spatial weight map. The usual CFU footprint is `weightMap > 0.1`. |
+| `occurrence` | logical `1 × T` | Estimated rising-frame sequence used for dependency analysis. |
+| `meanCurve` | numeric `1 × T` | Mean fluorescence curve within the CFU footprint. |
+| `meanDff` | numeric `1 × T` | Mean dF/F curve calculated from `meanCurve`. |
+| `timeWindow` | logical `1 × T` | Frames in which the CFU's own events occur inside its footprint. |
+| `nonTimeWindow` | logical `1 × T` | Frames occupied by other CFUs in the same footprint but outside this CFU's time window. |
+| `frequencyStats` | scalar struct | Frequency summary with fields `count`, `mainFreq`, `method`, `peakFreq80`, and `dt`. |
+| `grayEventIds` | numeric vector or empty | Filtered overlapping events from other CFUs. |
+| `spatialClass` | numeric scalar or empty | Class label assigned by a saved spatial boundary. |
+| `isManual` | logical scalar or empty | `true` identifies a manually drawn or adjusted ellipse CFU. |
+| `parentId` | numeric scalar or empty | Original hierarchy cluster ID. |
+| `memberships` | cell or struct | Shared-event local masks and scores. |
 
-### Frequency Statistics in Column 9
+### Frequency Statistics
 
 ```matlab
-stats = result.cfuInfo1{cfuId, 9};
+stats = result.cfuInfo1(cfuId).frequencyStats;
 
 stats.count        % Number of member events
 stats.mainFreq     % Main frequency in Hz
@@ -96,7 +98,7 @@ After manual CFU creation, adjustment, or deletion, recalculate `cfuRelation` an
 
 `spatialBoundary` contains `XData`, `YData`, `ClassA`, `ClassB`, `ImageSize`, and `ClassificationColumn`.
 
-Each element of `manualCFUShapes` contains `Version`, `Channel`, `Index`, `Center`, `SemiAxes`, and `RotationAngle`. These display parameters correspond to the manual-CFU flag in column 12.
+Each element of `manualCFUShapes` contains `Version`, `Channel`, `Index`, `Center`, `SemiAxes`, and `RotationAngle`. These display parameters correspond to the `isManual` field.
 
 ## Example: Read One CFU
 
@@ -105,12 +107,12 @@ result = load('example_res_cfu.mat');
 info = result.cfuInfo1;
 cfuId = 1;
 
-eventIds = info{cfuId, 2};
-footprint = info{cfuId, 3} > 0.1;
-meanCurve = info{cfuId, 5};
-meanDff = info{cfuId, 6};
-timeWindow = info{cfuId, 7};
+eventIds = info(cfuId).eventIds;
+footprint = info(cfuId).weightMap > 0.1;
+meanCurve = info(cfuId).meanCurve;
+meanDff = info(cfuId).meanDff;
+timeWindow = info(cfuId).timeWindow;
 
-isManual = size(info, 2) >= 12 && isequal(info{cfuId, 12}, true);
-hasSpatialClass = size(info, 2) >= 11 && ~isempty(info{cfuId, 11});
+isManual = isequal(info(cfuId).isManual, true);
+hasSpatialClass = ~isempty(info(cfuId).spatialClass);
 ```

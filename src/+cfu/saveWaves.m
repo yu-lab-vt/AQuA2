@@ -22,17 +22,17 @@ function saveWaves(~,~,fCFU,f)
 
     cfuInfo1 = getappdata(fCFU,'cfuInfo1');
     cfuInfo2 = getappdata(fCFU,'cfuInfo2');
-    T = numel(cfuInfo1{1,6});
+    T = numel(cfuInfo1(1).meanDff);
     for ii=1:size(dat,1)
         if dat{ii,1}==1 && dat{ii,2}==1
             evtID = dat{ii,3};
-            curve = cfuInfo1{evtID,6}';
+            curve = cfuInfo1(evtID).meanDff';
             writetable(table([1:T]',curve),[path1,filesep,'CH1_CFU',num2str(evtID),'.csv']);
         end
 
         if dat{ii,1}==1 && dat{ii,2}==2
             evtID = dat{ii,3};
-            curve = cfuInfo2{evtID,6}';
+            curve = cfuInfo2(evtID).meanDff';
             writetable(table([1:T]',curve),[path1,filesep,'CH2_CFU',num2str(evtID),'.csv']);
         end
     end

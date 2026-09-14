@@ -177,7 +177,7 @@ function drawSpatialBoundary(button, fCFU, editA, editB)
             end
 
             cfuInfo1 = getappdata(fCFU, 'cfuInfo1');
-            if ~iscell(cfuInfo1) || size(cfuInfo1, 2) < 3 || isempty(cfuInfo1)
+            if ~isstruct(cfuInfo1) || ~isfield(cfuInfo1, 'weightMap') || isempty(cfuInfo1)
                 error('cfu:InvalidCFUData', ...
                     'The current session does not contain valid CFU data to classify.');
             end
@@ -186,7 +186,7 @@ function drawSpatialBoundary(button, fCFU, editA, editB)
             invalidFootprints = false(nCFU, 1);
             for cfuIndex = 1:nCFU
                 [centres(cfuIndex, :), isValid] = getCFUCentre( ...
-                    cfuInfo1{cfuIndex, 3}, imageSize(1), imageSize(2), imageSize(3));
+                    cfuInfo1(cfuIndex).weightMap, imageSize(1), imageSize(2), imageSize(3));
                 invalidFootprints(cfuIndex) = ~isValid;
             end
             invalidIds = find(invalidFootprints);
@@ -213,7 +213,9 @@ function drawSpatialBoundary(button, fCFU, editA, editB)
 
             % Column 10 contains CFU event metadata in the main GUI. Keep
             % it intact and store the spatial class in the next column.
-            cfuInfo1(:, 11) = num2cell(cfuLabels);
+            for cfuIndex = 1:nCFU
+                cfuInfo1(cfuIndex).spatialClass = cfuLabels(cfuIndex);
+            end
             spatialBoundary = createSpatialBoundary(xPoints, yPoints, classA, classB, imageSize);
             cfu.clearSpatialBoundaryLine(fCFU);
             setappdata(fCFU, 'cfuInfo1', cfuInfo1);

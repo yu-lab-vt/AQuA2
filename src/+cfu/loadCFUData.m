@@ -48,6 +48,14 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
             fh.spatialBoundaryButton.Enable = 'off';
         end
 
+        % Convert legacy column-based CFU arrays before any consumer sees
+        % them.  This keeps old result files loadable while all runtime data
+        % use the named-record schema.
+        loadedData.cfuInfo1 = cfu.normalizeCFUInfo(loadedData.cfuInfo1);
+        if isfield(loadedData, 'cfuInfo2')
+            loadedData.cfuInfo2 = cfu.normalizeCFUInfo(loadedData.cfuInfo2);
+        end
+
         % Store loaded data into app data
         fh.pThr.Enable = 'off';
         fh.minNumCFU.Enable = 'off';
@@ -88,8 +96,7 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
             if isappdata(fCFU, 'groupInfo'); rmappdata(fCFU, 'groupInfo'); end
         end
 
-        % Rebuild cfuMap1 from cfuInfo1 (same convention as in CFURunGui)
-        % cfuInfo{i,3} stores the weightMap of CFU i
+        % Rebuild cfuMap1 from cfuInfo1 (same convention as in CFURunGui).
         cfuInfo1 = loadedData.cfuInfo1;
         nCFU1 = size(cfuInfo1, 1);
 
@@ -102,12 +109,12 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
         % Build cfuMap1
         cfuMap1 = zeros(H, W, L, 'uint16');
         for i = 1:nCFU1
-            weightMap = cfuInfo1{i,3};
+            weightMap = cfuInfo1(i).weightMap;
             % Accept both vectorized and 3D matrix weight maps
             if numel(weightMap) == H*W*L
                 weightMap = reshape(weightMap, [H, W, L]);
             elseif ~isequal(size(weightMap), [H, W, L])
-                error('cfuInfo1{%d,3} has incompatible size.', i);
+                error('cfuInfo1(%d).weightMap has incompatible size.', i);
             end
             cfuMap1(weightMap > 0.1) = uint16(i);
         end
@@ -134,11 +141,11 @@ function [didLoad, errorMessage] = loadCFUData(~, ~, fCFU, fOut, loadedData)
 
             cfuMap2 = zeros(H, W, L, 'uint16');
             for i = 1:nCFU2
-                weightMap = cfuInfo2{i,3};
+                weightMap = cfuInfo2(i).weightMap;
                 if numel(weightMap) == H*W*L
                     weightMap = reshape(weightMap, [H, W, L]);
                 elseif ~isequal(size(weightMap), [H, W, L])
-                    error('cfuInfo2{%d,3} has incompatible size.', i);
+                    error('cfuInfo2(%d).weightMap has incompatible size.', i);
                 end
                 cfuMap2(weightMap > 0.1) = uint16(i);
             end

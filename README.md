@@ -127,6 +127,10 @@ Xuelong Mi, Alex Bo-Yuan Chen, Daniela Duarte, Erin Carey, Charlotte R. Taylor, 
 
 # Updates
 
+**08/28/2026**
+
+*Branch* cfu/algo: redifine CFU maps. Improve detection. Add division for large CFUs.
+
 **08/24/2026**
 
 Add manual CFU function. Add CFU manual division. Improve CFU save path.

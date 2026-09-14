@@ -30,6 +30,14 @@ function output(~,~,fCFU,f)
     cfuOpts = cfu.getCfuOpts(fCFU);
     cfuInfo1 = getappdata(fCFU,'cfuInfo1');
     cfuInfo2 = getappdata(fCFU,'cfuInfo2');
+    cfuMergeDiagnostics1 = [];
+    cfuMergeDiagnostics2 = [];
+    if isappdata(fCFU, 'cfuMergeDiagnostics1')
+        cfuMergeDiagnostics1 = getappdata(fCFU, 'cfuMergeDiagnostics1');
+    end
+    if isappdata(fCFU, 'cfuMergeDiagnostics2')
+        cfuMergeDiagnostics2 = getappdata(fCFU, 'cfuMergeDiagnostics2');
+    end
     cfuRelation = getappdata(fCFU,'relation');
     cfuGroupInfo = getappdata(fCFU,'groupInfo');
     spatialBoundary = [];
@@ -41,7 +49,8 @@ function output(~,~,fCFU,f)
         manualCFUShapes = getappdata(fCFU,'manualCFUShapes');
     end
     save([outputPath,'.mat'],'cfuInfo1','cfuInfo2','cfuRelation', ...
-        'cfuGroupInfo','cfuOpts','datPro','favCFUList','spatialBoundary','manualCFUShapes');
+        'cfuGroupInfo','cfuOpts','datPro','favCFUList','spatialBoundary', ...
+        'manualCFUShapes','cfuMergeDiagnostics1','cfuMergeDiagnostics2');
 
     % Update 2026-08-07: export favorite CFU event summaries as an English-only Excel table.
     if isempty(favCFUList)
@@ -128,16 +137,16 @@ end
 function [eventIds,fts] = getCfuEvents(id,nCFU1,cfuInfo1,cfuInfo2,fts1,fts2)
     eventIds = [];
     fts = [];
-    if ~iscell(cfuInfo1) || ~iscell(cfuInfo2) || ~isnumeric(id) || ...
+    if ~isstruct(cfuInfo1) || (~isempty(cfuInfo2) && ~isstruct(cfuInfo2)) || ~isnumeric(id) || ...
             ~isscalar(id) || ~isfinite(id) || id ~= fix(id)
         return;
     end
 
     if id > nCFU1 && id <= nCFU1 + size(cfuInfo2,1)
-        eventIds = cfuInfo2{id - nCFU1,2};
+        eventIds = cfuInfo2(id - nCFU1).eventIds;
         fts = fts2;
     elseif id >= 1 && id <= size(cfuInfo1,1)
-        eventIds = cfuInfo1{id,2};
+        eventIds = cfuInfo1(id).eventIds;
         fts = fts1;
     end
 end
