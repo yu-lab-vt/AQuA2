@@ -9,7 +9,7 @@ function aqua_cmd_batch(batchConfigFile,parameterConfigFile)
 % Preset1. Leave pIn empty to use cfg/batch.csv instead.
 % parameters_for_batch.csv defines reusable Preset1, Preset2, ... columns.
 % In batch.csv, inputPath is required; outputPath is optional. Empty outputPath
-% writes the result alongside its input file.
+% writes results to an input-name subfolder alongside its input file.
 
 
 close all;
@@ -24,10 +24,11 @@ if nargin < 2 || isempty(parameterConfigFile)
     parameterConfigFile = fullfile('cfg','parameters_for_batch.csv');
 end
 
-batchSet.propMetric = false;    % whether extract propagation-related features
-batchSet.networkFeatures = false; % whether extract network features
+batchSet.propMetric = true;    % whether extract propagation-related features
+batchSet.networkFeatures = true; % whether extract network features
 batchSet.outputMovie = false;    % whether to output movie with detection overlay
 batchSet.outputFeatureTable = true; % whether to output feature table
+batchSet.outputRisingMap = false; % whether to output one rising-map image per event
 
 batchSet.batchConfigFile = char(batchConfigFile);
 batchSet.parameterConfigFile = char(parameterConfigFile);
@@ -361,7 +362,7 @@ for xxx = 1:nJobs
     name = inputName;
     pOut_each = char(batchJobs.outputPath(xxx));
     if isempty(pOut_each)
-        pOut_each = inputFolder;
+        pOut_each = fullfile(inputFolder,inputName);
     end
     if ~isfolder(pOut_each)
         mkdir(pOut_each);
@@ -418,9 +419,11 @@ for xxx = 1:nJobs
         end
     
         %% rising maps
-        fea.outputRisingMap([],[],riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst2), opts, fpath, [fname, '_risingMaps']);
-        if(opts.detectGlo)
-            fea.outputRisingMap([],[],gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,[fname, '_risingMaps_Glo']);
+        if batchSet.outputRisingMap
+            fea.outputRisingMap([],[],riseLst1, 1:numel(riseLst1), riseLst2, 1:numel(riseLst2), opts, fpath, [fname, '_risingMaps']);
+            if(opts.detectGlo)
+                fea.outputRisingMap([],[],gloRiseLst1, 1:numel(gloRiseLst1), gloRiseLst2, 1:numel(gloRiseLst2), opts, fpath ,[fname, '_risingMaps_Glo']);
+            end
         end
 
     end
@@ -458,6 +461,7 @@ for xxx = 1:nJobs
         xxx,nJobs,toc(fileTimer),pOut_each);
 end
 end
+
 
 function batchJobs = readBatchJobs(cfgFile)
 % Read one input job per batch.csv row. Empty outputPath uses input folder.
@@ -617,4 +621,3 @@ for componentIndex = 1:components.NumObjects
     bd0{componentIndex} = {bwboundaries(componentMask),pixels,'imported','None'};
 end
 end
-
