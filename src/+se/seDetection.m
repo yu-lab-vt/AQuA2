@@ -26,7 +26,7 @@ function [seLst,evtLst2,seLstInfoLabel,majorityEvt2,opts,sdLst,mergingInfo,ccReg
     tic;
     disp('Watershed grow');
 %     [evtLst,sdLst,ccRegions] = se.segmentation_MSF2(Map,arLst,dF,dFOrg,opts,ff);
-    [evtLst,sdLst,ccRegions] = se.markerControlledSplitting_Ac(Map,arLst,dF,opts,ff);
+    [evtLst,sdLst,ccRegions,scoreMap] = se.markerControlledSplitting_Ac(Map,arLst,dF,opts,ff);
     clear Map;
     toc;
 
@@ -70,7 +70,12 @@ function [seLst,evtLst2,seLstInfoLabel,majorityEvt2,opts,sdLst,mergingInfo,ccReg
     % according to curve, refine
     disp('Refining');
     tic;
-    [sdLst,evtLst2,majorityEvt2] = se.majorCurveFilter2(datOrg,dF,sdLst,evtLst2,majorityEvt2,opts);
+    % Preserve majorCurveFilter2's original double score-map values while
+    % reusing the smoothing already computed for marker-controlled splitting.
+    scoreMap = double(scoreMap);
+    [sdLst,evtLst2,majorityEvt2] = se.majorCurveFilter2( ...
+        datOrg,dF,sdLst,evtLst2,majorityEvt2,opts,scoreMap);
+    clear scoreMap;
     toc;
 
 %     disp('Refining Region');

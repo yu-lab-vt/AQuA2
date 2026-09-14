@@ -27,17 +27,21 @@ function [Map,arLst] = seedDetect2_DS_accelerate(dF,datOrg,arLst,opts,ff)
     dFResize = cell(numel(scaleRatios),1);          % downsampled data to do selection
     H0s = zeros(numel(scaleRatios),1);
     W0s = zeros(numel(scaleRatios),1);
+    columnOffsets = cell(numel(scaleRatios),1);
     for j = 1:numel(scaleRatios)
+        scaleRatio = scaleRatios(j);
         datResize{j} = reshape(datResize{j},[],T);
 %         if j>1
-            dFResize{j} = se.myResize(dF,1/scaleRatios(j));
-            validMaps{j} = se.myResize(activeMap,1/scaleRatios(j))>0;
+            dFResize{j} = se.myResize(dF,1/scaleRatio);
+            validMaps{j} = se.myResize(activeMap,1/scaleRatio)>0;
 %         else
 %             dFResize{1} = dF;
 %             validMaps{1} = activeMap>0;
 %         end
-        H0s(j) = ceil(H/scaleRatios(j));
-        W0s(j) = ceil(W/scaleRatios(j));
+        H0s(j) = ceil(H/scaleRatio);
+        W0s(j) = ceil(W/scaleRatio);
+        columnOffset = repmat(1:scaleRatio,scaleRatio,1);
+        columnOffsets{j} = columnOffset(:)';
     end
 
     % seed map
@@ -51,9 +55,11 @@ function [Map,arLst] = seedDetect2_DS_accelerate(dF,datOrg,arLst,opts,ff)
         for j = 1:numel(scaleRatios)    % downsample rate
             H0 = H0s(j); W0 = W0s(j);
             scaleRatio = scaleRatios(j);
-            tmp = repmat(1:scaleRatio,scaleRatio,1);
-            tmp = tmp(:)';
+            columnOffset = columnOffsets{j};
             selectMap = dFResize{j}>curThr & validMaps{j};
+            if ~any(selectMap(:))
+                continue
+            end
             curRegions = act.bw2Reg(selectMap,opts);
              %% Rough filter -- for acceleration
             sz = cellfun(@numel,curRegions);
@@ -73,7 +79,7 @@ function [Map,arLst] = seedDetect2_DS_accelerate(dF,datOrg,arLst,opts,ff)
 
                 % convert back
                 ihOrg = repmat((ih-1)*scaleRatio,1,scaleRatio*scaleRatio) + repmat(1:scaleRatio,numel(ih),scaleRatio);
-                iwOrg = repmat((iw-1)*scaleRatio,1,scaleRatio*scaleRatio) + repmat(tmp,numel(ih),1);
+                iwOrg = repmat((iw-1)*scaleRatio,1,scaleRatio*scaleRatio) + repmat(columnOffset,numel(ih),1);
                 ilOrg = repmat(il,1,scaleRatio*scaleRatio);
                 itOrg = repmat(it,1,scaleRatio*scaleRatio);
                 select = ihOrg<=H & iwOrg<=W;

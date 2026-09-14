@@ -1,4 +1,4 @@
-function [evtLst,sdLst,curRegions] = markerControlledSplitting_Ac(Map,curRegions,dF,opts,ff)
+function [evtLst,sdLst,curRegions,scoreMap] = markerControlledSplitting_Ac(Map,curRegions,dF,opts,ff)
 % ----------- Modified by Xuelong Mi, 02/20/2023 -----------
     [H,W,L,T] = size(dF);
     sdLst = label2idx(Map);

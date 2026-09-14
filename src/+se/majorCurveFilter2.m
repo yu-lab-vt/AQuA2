@@ -1,9 +1,11 @@
-function [sdLst,evtLst,majorityEvt0] = majorCurveFilter2(datOrg,dF,sdLst,evtLst,majorityEvt0,opts)
+function [sdLst,evtLst,majorityEvt0] = majorCurveFilter2(datOrg,dF,sdLst,evtLst,majorityEvt0,opts,scoreMap)
     [H,W,L,T] = size(datOrg);
-    opts.spaSmo = 3;
-    scoreMap = zeros(size(dF));
-    for t = 1:T
-        scoreMap(:,:,:,t) = -imgaussfilt(dF(:,:,:,t),opts.spaSmo);% spatial smoothing for weakening gap in spatial
+    if nargin < 7 || isempty(scoreMap)
+        opts.spaSmo = 3;
+        scoreMap = zeros(size(dF));
+        for t = 1:T
+            scoreMap(:,:,:,t) = -imgaussfilt(dF(:,:,:,t),opts.spaSmo);% spatial smoothing for weakening gap in spatial
+        end
     end
 
     Map = zeros(size(datOrg),'uint16');
