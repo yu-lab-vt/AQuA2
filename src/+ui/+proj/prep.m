@@ -7,7 +7,14 @@ function prep(~,~,f,op,res)
 % FIXME: udpate GUI settings (btSt), instead of re-build it
 
 fprintf('Loading ...\n');
+% resetSession rebuilds the welcome card. Keep the project window hidden
+% until prepInitUI has selected and populated the destination data card,
+% so restoring the rebuilt window cannot cover the loading progress.
+originalVisibility = f.Visible;
+restoreWindow = onCleanup(@() restoreLoadingWindow(f,originalVisibility));
+f.Visible = 'off';
 ff = waitbar(0,'Loading ...');
+closeProgress = onCleanup(@() closeLoadingProgress(ff));
 
 % cfgFile = 'uicfg.mat';
 % if ~exist(cfgFile,'file')
@@ -24,6 +31,10 @@ fh = guidata(f);
 
 % new project
 if op==0
+    % Opening a file defines a new project session even if the user reached
+    % this screen without using Restart first.
+    ui.proj.resetSession(f,false);
+    fh = guidata(f);
     preset = find(strcmp(fh.preset.Items,fh.preset.Value));
     opts = util.parseParam(preset);
     opts.preset = preset;
@@ -118,6 +129,10 @@ if op>0
         tmp = load(fexp);
         res = tmp.res;
     end
+    % Loading saved results is also a project transition.  Read the chosen
+    % file first, then discard any state from the project it replaces.
+    ui.proj.resetSession(f,false);
+    fh = guidata(f);
     
     opts = res.opts;
     if isfield(res, 'cfuInfo1')
@@ -159,7 +174,7 @@ if op>0
     res.datOrg1 = dat1;
     res.datOrg2 = dat2;
     % A saved experiment contains its current movie only. Treat it as the
-    % raw baseline for this session so Reset remains available after load.
+    % raw baseline for parameter changes during this session.
     res.datRaw1 = dat1;
     res.datRaw2 = dat2;
     res.preRawRange = struct('minValueDat1',opts.minValueDat1,...
@@ -241,9 +256,6 @@ if op>0
     opts.isLoadData = true;
     setappdata(f,'opts',opts);
     
-    f.Visible = 'off';
-    f.Visible = 'on';
-    
 end
 
 waitbar(1,ff);
@@ -292,7 +304,18 @@ delete(ff);
 
 end
 
+function restoreLoadingWindow(f,visibility)
+if isgraphics(f)
+    f.Visible = visibility;
+    drawnow;
+end
+end
 
+function closeLoadingProgress(ff)
+if isgraphics(ff)
+    delete(ff);
+end
+end
 
 
 

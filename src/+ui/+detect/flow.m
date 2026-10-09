@@ -16,10 +16,6 @@ if strcmp(op,'chg')
         fh.deOutTab.SelectedTab=evtDat.OldValue;
         ixTab = find(fh.deOutTab.SelectedTab==fh.deOutTab.Children);
     end
-    if isfield(opts,'isLoadData') && opts.isLoadData
-        ixTab = nTabTot;
-        fh.deOutTab.SelectedTab=fh.deOutTab.Children(ixTab);
-    end
 end
 
 % go to previous step
@@ -56,24 +52,19 @@ end
 % go to next step
 if strcmp(op,'next')
     if ixTab<nTabTot
-%         if(ixTab==1 && strcmp(fh.registrateCorrect.Enable,'on'))
-%             selection = questdlg('Use current processed data? Enter next step, the registration and bleach correction cannot be changed?', ...
-%                     'warning','OK','Cancel','Cancel');
-%             switch selection
-%                 case 'OK'
-%                     fh.registrateCorrect.Enable = 'off';
-%                     fh.bleachCorrect.Enable = 'off';
-%                     fh.medSmo.Enable = 'off';
-%                     fh.preReset.Enable = 'off';
-%                 case 'Cancel'
-%                     return
-%             end
-%         end
         ixTab = ixTab + 1;
         fh.deOutTab.SelectedTab = fh.deOutTab.Children(ixTab);
     else
         fCFU = uifigure('Name','AQUA2-CFU','MenuBar','none','Toolbar','none',...
-        'NumberTitle','off','Visible','off');
+        'NumberTitle','off','Tag','AQuA2CFU','Visible','off');
+        cfuFigures = getappdata(f,'cfuFigures');
+        if isempty(cfuFigures)
+            cfuFigures = fCFU;
+        else
+            cfuFigures = cfuFigures(isgraphics(cfuFigures));
+            cfuFigures(end+1) = fCFU;
+        end
+        setappdata(f,'cfuFigures',cfuFigures);
         ui.com.cfuCon(fCFU,f);
         fCFU.Visible = 'on';
     end
@@ -100,4 +91,3 @@ end
 setappdata(f,'opts',opts);
 
 end
-

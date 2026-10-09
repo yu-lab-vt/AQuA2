@@ -1,4 +1,4 @@
-function prepInitUI(f,fh,opts,scl,~,stg,op)
+function prepInitUI(f,fh,opts,scl,~,stg,~)
 % ----------- Modified by Xuelong Mi, 11/09/2022 -----------    
     % layer panel
     fh.sldMin.Limits = [scl.min scl.max];
@@ -49,41 +49,35 @@ function prepInitUI(f,fh,opts,scl,~,stg,op)
     fh.sldActThr.Limits = [0,max(10,opts.thrARScl)];
     fh.sldActThr.Value = opts.thrARScl;
     
-    % detection parameters
-    if op==0
-        fh.registrateCorrect.Value = fh.registrateCorrect.Items{opts.registrateCorrect};
-        fh.bleachCorrect.Value = fh.bleachCorrect.Items{opts.bleachCorrect};
-        fh.medSmo.Value = num2str(opts.medSmo);
-        fh.smoXY.Value = num2str(opts.smoXY);
+    % Restore parameters for both new movies and saved projects, since the
+    % controls are rebuilt on every project transition.
+    fh.registrateCorrect.Value = fh.registrateCorrect.Items{opts.registrateCorrect};
+    fh.bleachCorrect.Value = fh.bleachCorrect.Items{opts.bleachCorrect};
+    fh.medSmo.Value = num2str(opts.medSmo);
+    fh.smoXY.Value = num2str(opts.smoXY);
 
-        fh.thrArScl.Value = num2str(opts.thrARScl);
-        fh.minSize.Value = num2str(opts.minSize);
-        fh.maxSize.Value = num2str(opts.maxSize);
-        fh.circularityThr.Value = num2str(opts.circularityThr);
-        fh.minDur.Value = num2str(opts.minDur);
-        fh.spaMergeDist.Value = num2str(opts.spaMergeDist);
-        
-        fh.needTemp.Value = opts.needTemp;
-        fh.seedSzRatio.Value = num2str(opts.seedSzRatio);
-        fh.sigThr.Value = num2str(opts.sigThr);
-        fh.maxDelay.Value = num2str(opts.maxDelay);
-        fh.needRefine.Value = opts.needRefine;
-        fh.needGrow.Value = opts.needGrow;
-        
-        fh.needSpa.Value = opts.needSpa;
-        fh.sourceSzRatio.Value = num2str(opts.sourceSzRatio);
-        fh.sourceSensitivity.Value = num2str(opts.sourceSensitivity);
-        try
-            fh.whetherExtend.Value = opts.whetherExtend;
-        end
-
-        fh.detectGlo.Value = opts.detectGlo;
-        fh.gloDur.Value = num2str(opts.gloDur);
-
-        fh.ignoreTau.Value = opts.ignoreTau;
-        fh.propMetric.Value = opts.propMetric;
-        fh.networkFeatures.Value = opts.networkFeatures;
+    fh.thrArScl.Value = num2str(opts.thrARScl);
+    fh.minSize.Value = num2str(opts.minSize);
+    fh.maxSize.Value = num2str(opts.maxSize);
+    fh.circularityThr.Value = num2str(opts.circularityThr);
+    fh.minDur.Value = num2str(opts.minDur);
+    fh.needTemp.Value = opts.needTemp;
+    fh.seedSzRatio.Value = num2str(opts.seedSzRatio);
+    fh.sigThr.Value = num2str(opts.sigThr);
+    fh.maxDelay.Value = num2str(opts.maxDelay);
+    fh.needSpa.Value = opts.needSpa;
+    fh.sourceSzRatio.Value = num2str(opts.sourceSzRatio);
+    fh.sourceSensitivity.Value = num2str(opts.sourceSensitivity);
+    if isfield(opts,'whetherExtend')
+        fh.whetherExtend.Value = opts.whetherExtend;
     end
+
+    fh.detectGlo.Value = opts.detectGlo;
+    fh.gloDur.Value = num2str(opts.gloDur);
+
+    fh.ignoreTau.Value = opts.ignoreTau;
+    fh.propMetric.Value = opts.propMetric;
+    fh.networkFeatures.Value = opts.networkFeatures;
     
     try
         % update overlay menu
@@ -98,16 +92,24 @@ function prepInitUI(f,fh,opts,scl,~,stg,op)
     end
     
     % resize GUI
+    fh.Card1.Visible = 'off';
     fh.Card2.Visible = 'off';
     fh.Card3.Visible = 'on';
+    fh.Card4.Visible = 'off';
     f.KeyReleaseFcn = {@ui.mov.findKeyPress};
     f.Position = getappdata(f,'guiMainSz');
     
-    dbgx = getappdata(f,'dbg');
-    if isempty(dbgx); dbgx=0; end        
-    
     % UI visibility according to steps
     if stg.detect==0  % not started yet
+        for ii = 1:numel(fh.deOutTab.Children)
+            fh.deOutTab.Children(ii).ForegroundColor = [.8,.8,.8];
+        end
+        fh.deOutTab.Children(1).ForegroundColor = [0,0,0];
+        fh.deOutRun.Text = 'Run';
+        fh.deOutNext.Text = 'Next';
+        fh.deOutBack.Enable = 'on';
+        fh.nEvtName.Text = 'nEvt';
+        fh.nEvt.Text = '0';
         fh.deOutNext.Enable = 'off';
         fh.pFilter.Visible = 'off';
         fh.pExport.Visible = 'off';
@@ -117,7 +119,11 @@ function prepInitUI(f,fh,opts,scl,~,stg,op)
         fh.deOutBack.Visible = 'off';
     else  % finished
         ui.detect.filterInit([],[],f);
-        fh.deOutBack.Enable = 'off';
+        fh.deOutBack.Enable = 'on';
+        fh.deOutBack.Visible = 'on';
+        for ii = 1:numel(fh.deOutTab.Children)
+            fh.deOutTab.Children(ii).ForegroundColor = [0,0,0];
+        end
         fh.deOutTab.SelectedTab = fh.deOutTab.Children(end);
         fh.deOutNext.Enable = 'on';
     end

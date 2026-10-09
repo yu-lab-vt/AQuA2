@@ -26,13 +26,19 @@ function CFURunGui(~,~,fCFU,f)
     evtLst1 = getappdata(f, 'evt1');
     fts1 = getappdata(f, 'fts1'); % [Added] Get features for peak times
     cfu_pre1 = getappdata(fCFU,'cfu_pre1');
+    projectSessionId = getappdata(f,'projectSessionId');
+    cachedSessionId = getappdata(fCFU,'projectSessionId');
+    isNewProjectSession = ~isequal(cachedSessionId,projectSessionId);
     fh.favCFUs = [];
     
     ff = waitbar(0,'Calculating events distance');
 
-    if(isempty(getappdata(fCFU,'cfu_pre1')) || numel(cfu_pre1.evtIhw)~=numel(evtLst1)) || (isfield(fh,'preSpa') && fh.preSpa~=fh.spatialOption.Value)
+    if isNewProjectSession || isempty(cfu_pre1) || ...
+            numel(cfu_pre1.evtIhw) ~= numel(evtLst1) || ...
+            (isfield(fh,'preSpa') && fh.preSpa ~= fh.spatialOption.Value)
         [cfu_pre1] = cfu.CFU_tmp_function(evtLst1,fh.spatialOption.Value,opts.sz,ff);
         setappdata(fCFU,'cfu_pre1',cfu_pre1);
+        setappdata(fCFU,'projectSessionId',projectSessionId);
         
         if(~opts.singleChannel)
             evtLst2 = getappdata(f, 'evt2');
