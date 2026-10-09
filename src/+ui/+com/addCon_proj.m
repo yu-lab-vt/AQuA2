@@ -1,7 +1,13 @@
 function addCon_proj(f,bWel,bNew)
 % Welcome
-uibutton(bWel,'push','Text','New project','ButtonPushedFcn',{@ui.proj.newProj,f},'FontSize',18);
-uibutton(bWel,'push','Text','Load existing','ButtonPushedFcn',{@ui.proj.loadExp,f},'FontSize',18);
+p = uibutton(bWel,'push','Text','New project','Tag','newProject', ...
+    'ButtonPushedFcn',{@ui.proj.newProj,f},'FontSize',18);
+p.Layout.Row = 2;
+p.Layout.Column = 2;
+p = uibutton(bWel,'push','Text','Load existing','Tag','loadExisting', ...
+    'ButtonPushedFcn',{@ui.proj.loadExp,f},'FontSize',18);
+p.Layout.Row = 3;
+p.Layout.Column = 2;
 
 % New proj
 bNew1 = uigridlayout(bNew,'ColumnWidth',{'1x',20},'RowHeight',{15,20,15,20},'Padding',[0,0,0,0],'ColumnSpacing',5,'RowSpacing',5);

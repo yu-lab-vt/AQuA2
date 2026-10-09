@@ -24,6 +24,10 @@ fh = guidata(f);
 
 % new project
 if op==0
+    % Opening a file defines a new project session even if the user reached
+    % this screen without using Restart first.
+    ui.proj.resetSession(f,false);
+    fh = guidata(f);
     preset = find(strcmp(fh.preset.Items,fh.preset.Value));
     opts = util.parseParam(preset);
     opts.preset = preset;
@@ -118,6 +122,10 @@ if op>0
         tmp = load(fexp);
         res = tmp.res;
     end
+    % Loading saved results is also a project transition.  Read the chosen
+    % file first, then discard any state from the project it replaces.
+    ui.proj.resetSession(f,false);
+    fh = guidata(f);
     
     opts = res.opts;
     if isfield(res, 'cfuInfo1')

@@ -1,9 +1,8 @@
-function flow2(~,evtDat,f)
+function flow2(~,~,f)
 %% the function of RunAllSteps
 
 % delete(gcp('nocreate'));
 
-fh = guidata(f);
 ui.detect.preProcessRun([],[],f);
 if(~isempty(getappdata(f,'datCorrect1')))
     setappdata(f,'datOrg1',getappdata(f,'datCorrect1'));
@@ -11,10 +10,6 @@ if(~isempty(getappdata(f,'datCorrect1')))
     setappdata(f,'datOrg2',getappdata(f,'datCorrect2'));
     rmappdata(f,'datCorrect2');
 end
-fh.registrateCorrect.Enable = 'off';
-fh.bleachCorrect.Enable = 'off';
-fh.medSmo.Enable = 'off';
-fh.preReset.Enable = 'off';
 
 ui.detect.actRun([],[],f);
 
@@ -27,6 +22,12 @@ ui.detect.gloRun([],[],f);
 ui.detect.feaRun([],[],f);
 
 % controls
+fh = guidata(f);
+fh.registrateCorrect.Enable = 'on';
+fh.bleachCorrect.Enable = 'on';
+fh.medSmo.Enable = 'on';
+fh.preReset.Enable = 'on';
+fh.deOutBack.Enable = 'on';
 fh.deOutBack.Visible = 'on';
 fh.deOutRun.Text = 'Extract';
 fh.deOutNext.Text = 'CFU detect';

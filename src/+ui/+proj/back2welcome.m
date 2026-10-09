@@ -1,4 +1,5 @@
 function back2welcome(~,~,f)
+ui.proj.resetSession(f,true);
 fh = guidata(f);
 fh.Card1.Visible = 'on';
 fh.Card2.Visible = 'off';

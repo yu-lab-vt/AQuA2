@@ -7,12 +7,17 @@ setappdata(f,'btSt',btSt);
 setappdata(f,'guiWelcomeSz',[w0/2-200,h0/2-150,400,300]);
 setappdata(f,'guiMainSz',[w0/2-700 h0/2-400 1400 850]);
 
+% A restart can originate from a maximized main window. Restore normal
+% window sizing before setting the welcome-page dimensions.
+f.WindowState = 'normal';
 f.Position = getappdata(f,'guiWelcomeSz');
 f.Resize = 'on';
 
 % top level panels
 g = uipanel(f,'Tag','g','Units','normalized','Position',[0,0,1,1],'BorderType','none');
-bWel = uigridlayout(g,'Tag','Card1','ColumnWidth',{'1x'},'RowHeight',{'1x','1x'},'Padding',[100,75,100,75]);
+bWel = uigridlayout(g,'Tag','Card1', ...
+    'ColumnWidth',{'1x',200,'1x'},'RowHeight',{'1x',70,70,'1x'}, ...
+    'Padding',[20,20,20,20],'ColumnSpacing',0,'RowSpacing',15);
 bNew = uigridlayout(g,'Tag','Card2','ColumnWidth',{'1x'},'RowHeight',{90,120,40},'Padding',[5,5,5,5],'ColumnSpacing',5,'RowSpacing',5);
 ui.com.addCon_proj(f,bWel,bNew);
 bNew.Visible = 'off';

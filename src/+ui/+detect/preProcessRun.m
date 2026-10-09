@@ -23,6 +23,15 @@ if(isempty(preSetting) || ~isfield(opts,'alreadyProprecess') || ~opts.alreadyPro
         setappdata(f,'datRaw1',datOrg1);
         setappdata(f,'datRaw2',datOrg2);
     end
+    % Parameter edits restart from the raw movie and its intensity range.
+    % A previous median-filter trial may have changed the scale metadata.
+    rawRange = getappdata(f,'preRawRange');
+    if ~isempty(rawRange)
+        rangeNames = fieldnames(rawRange);
+        for ii = 1:numel(rangeNames)
+            opts.(rangeNames{ii}) = rawRange.(rangeNames{ii});
+        end
+    end
     
     opts.registrateCorrect = find(strcmp(fh.registrateCorrect.Value,fh.registrateCorrect.Items));
     opts.bleachCorrect = find(strcmp(fh.bleachCorrect.Value,fh.bleachCorrect.Items));
