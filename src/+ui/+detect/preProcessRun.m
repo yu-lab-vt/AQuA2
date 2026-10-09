@@ -4,7 +4,7 @@ opts = getappdata(f,'opts');
 preSetting = getappdata(f,'preSetting');
 disp('Preprocessing');
 fh = guidata(f);
-ff = waitbar(0,'Image registration ...');
+ff = waitbar(0,'Preprocessing ...');
 
 % ----------------- registration, photobleach correction, remove salt and pepper noise ---------------
 if(isempty(preSetting) || ~isfield(opts,'alreadyProprecess') || ~opts.alreadyProprecess || ...
@@ -40,6 +40,7 @@ if(isempty(preSetting) || ~isfield(opts,'alreadyProprecess') || ~opts.alreadyPro
     setappdata(f,'preSetting',preSetting);
 
     % image registration
+    waitbar(0,'Image registration ...');
     if(opts.registrateCorrect == 2)
         tic;
         [datOrg1,datOrg2] = reg.regCrossCorrelation(datOrg1,datOrg2);
