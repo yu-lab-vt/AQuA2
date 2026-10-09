@@ -26,7 +26,6 @@ fh = guidata(f);
 fh.registrateCorrect.Enable = 'on';
 fh.bleachCorrect.Enable = 'on';
 fh.medSmo.Enable = 'on';
-fh.preReset.Enable = 'on';
 fh.deOutBack.Enable = 'on';
 fh.deOutBack.Visible = 'on';
 fh.deOutRun.Text = 'Extract';

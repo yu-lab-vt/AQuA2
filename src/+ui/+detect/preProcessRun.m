@@ -40,7 +40,7 @@ if(isempty(preSetting) || ~isfield(opts,'alreadyProprecess') || ~opts.alreadyPro
     setappdata(f,'preSetting',preSetting);
 
     % image registration
-    waitbar(0,'Image registration ...');
+    waitbar(0, ff,'Image registration ...');
     if(opts.registrateCorrect == 2)
         tic;
         [datOrg1,datOrg2] = reg.regCrossCorrelation(datOrg1,datOrg2);
