@@ -93,6 +93,7 @@ function addCon_wkfl(f,pWkfl)
     p = uicheckbox(bExp,'Text','AQuA2 project','Value',1,'Tag','expEvt');p.Layout.Column = 2;
     uicheckbox(bExp,'Text','Feature Table','Value',1,'Tag','expFt');
     p = uicheckbox(bExp,'Text','Movie with overlay','Value',1,'Tag','expMov');p.Layout.Column = 2; p.Layout.Row = 3;
+    p = uicheckbox(bExp,'Text','Overlay only','Value',0,'Tag','expOverlay');p.Layout.Column = 3; p.Layout.Row = 3;
     % uicheckbox(bExp,'Text','Events (Only position)','Value',0,'Tag','expEvt2');
     p = uibutton(bExp,'push','Text','Export / Save','ButtonPushedFcn',{@ui.proj.getOutputFolder,f});
     p.Layout.Column = [2,3]; p.Layout.Row = 4;

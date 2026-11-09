@@ -55,16 +55,35 @@ function [datxCol,overLayData,overLayColor] = movStep(f,n,ovOnly,updtAll)
     end
     dat = cell(2,1); dat{1} = dat1; dat{2} = dat2;
 
+    if ovOnly==2
+        % Export event colors on black, independently of movie brightness.
+        if L==1
+            datxCol = {overCol1;overCol2};
+        else
+            datxCol = {zeros(size(dat1),'like',dat1);[]};
+            if ~opts.singleChannel
+                datxCol{2} = zeros(size(dat2),'like',dat2);
+            end
+        end
+        return;
+    end
+
     if ovOnly>0
+        % Apply channel brightness before adding event colors, as in AQuA.
+        % Keep the overlay brightness independent of the movie brightness.
         if L==1
             datxCol = cell(2,1);
-            datxCol{1} = cat(3,dat1,dat1,dat1) + overCol1;
+            datxCol{1} = cat(3,dat1,dat1,dat1)*scl.bri1 + overCol1;
             if(~opts.singleChannel)
-                datxCol{2} = cat(3,dat2,dat2,dat2) + overCol2;
+                datxCol{2} = cat(3,dat2,dat2,dat2)*scl.bri2 + overCol2;
             end
             return;
         else
             datxCol = dat;
+            datxCol{1} = datxCol{1}*scl.bri1;
+            if(~opts.singleChannel)
+                datxCol{2} = datxCol{2}*scl.bri2;
+            end
             return;
         end
     end

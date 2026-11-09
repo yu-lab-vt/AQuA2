@@ -107,8 +107,19 @@ toc
 %     save(fout,'res','-v7.3');
 % end
 
-% export movie
+% Export composite movies and/or event colors on a black background.
+exportModes = [];
 if fh.expMov.Value==1
+    exportModes(end+1) = 1;
+end
+if isfield(fh,'expOverlay') && fh.expOverlay.Value==1
+    exportModes(end+1) = 2;
+end
+for exportMode = exportModes
+    movieName = fname;
+    if exportMode==2
+        movieName = [fname,'_Overlay_only'];
+    end
     waitbar(0.5,ff,'Writing movie ...');
     if opts.sz(3)==1
         ov1 = zeros(opts.sz(1),opts.sz(2),3,opts.sz(4));
@@ -119,7 +130,7 @@ if fh.expMov.Value==1
             if mod(tt,100)==0
                 fprintf('Frame %d\n',tt); 
             end
-            datxCol = ui.movStep(f,tt,1);
+            datxCol = ui.movStep(f,tt,exportMode);
             ov1(:,:,:,tt) = datxCol{1};
             if ~opts.singleChannel
                 ov2(:,:,:,tt) = datxCol{2};
@@ -128,20 +139,20 @@ if fh.expMov.Value==1
         ui.movStep(f);
         
         if ~opts.singleChannel
-            io.writeTiffSeq([fpath,filesep,fname,'_Channel_1.tif'],ov1,8);
-            io.writeTiffSeq([fpath,filesep,fname,'_Channel_2.tif'],ov2,8);
+            io.writeTiffSeq([fpath,filesep,movieName,'_Channel_1.tif'],ov1,8);
+            io.writeTiffSeq([fpath,filesep,movieName,'_Channel_2.tif'],ov2,8);
         else
-            fmov = [fpath,filesep,fname,'.tif'];
+            fmov = [fpath,filesep,movieName,'.tif'];
             io.writeTiffSeq(fmov,ov1,8);
         end
     else
-        fmov = [fpath,filesep,fname,'_Movie',filesep];
+        fmov = [fpath,filesep,movieName,'_Movie',filesep];
         mkdir(fmov);
         for tt = 1:opts.sz(4)
             if mod(tt,100)==0
                 fprintf('Frame %d\n',tt); 
             end
-            [dat,overLayData,overLayColor] = ui.movStep(f,tt,1);
+            [dat,overLayData,overLayColor] = ui.movStep(f,tt,exportMode);
             curLst = label2idx(overLayData{1});
             rPlane = dat{1};
             gPlane = dat{1};
