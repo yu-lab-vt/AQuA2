@@ -10,8 +10,13 @@ if v_year >= 2023
     fh.Card2.Visible = 'off';
     fh.Card3.Visible = 'on';
     f.Position = getappdata(f,'guiMainSz');
-    drawnow;
 end
+
+% volshow waits for the viewer to finish initializing. A hidden figure
+% cannot complete that initialization in R2024b, so show it before creating
+% any volume (prep restores the original visibility when loading finishes).
+f.Visible = 'on';
+drawnow;
 
 delete(fh.mov);
 pMov1 = viewer3d(fh.bMov1Top,'Tag','mov');
