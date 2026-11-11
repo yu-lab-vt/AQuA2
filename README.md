@@ -2,6 +2,8 @@
 ----------------------------------
 AQuA2 (Activity Quantification and Analysis) is a tool for quantifying spatiotemporal signals across biosensors, cell types, organs,  animal models and imaging modalities of biological fluorescent imaging data. AQuA can be pronounced as /ˈɑː.kwə/.
 
+**[AQuA2-portable (based on Python) is out now!! Try it out!](https://github.com/yu-lab-vt/AQuA2-portable)** This is an unofficial preview; bugs and differences from MATLAB may remain.
+
 If you have any feedback or issue, you are welcome to either post issue in Issues section or send email to yug@tsinghua.edu.cn (Guoqiang Yu at Tsinghua University).
 
 - [More about AQuA2](#more-about-aqua)
